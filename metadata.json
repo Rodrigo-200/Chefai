@@ -1,0 +1,5 @@
+{
+  "name": "ChefAI - Intelligent Recipe Extractor",
+  "description": "Extract structured recipes from videos, images, and text using Gemini AI. Supports multilingual analysis, PDF export, and recipe management.",
+  "requestFramePermissions": []
+}
