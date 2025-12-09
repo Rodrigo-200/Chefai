@@ -40,9 +40,9 @@ export default defineConfig(({ mode }) => {
             }
           ],
           share_target: {
-            action: "/",
-            method: "GET",
-            enctype: "application/x-www-form-urlencoded",
+            action: "/share-target",
+            method: "POST",
+            enctype: "multipart/form-data",
             params: {
               title: "title",
               text: "text",

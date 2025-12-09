@@ -1180,6 +1180,31 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', hasGeminiKey: Boolean(GEMINI_KEY) });
 });
 
+// Handle Share Target POST requests
+app.post('/share-target', upload.none(), async (req, res) => {
+  try {
+    const shareData = {
+      title: req.body.title,
+      text: req.body.text,
+      url: req.body.url,
+    };
+    
+    if (existsSync(path.join(distPath, 'index.html'))) {
+      let html = await fs.readFile(path.join(distPath, 'index.html'), 'utf-8');
+      html = html.replace(
+        'window.__SHARE_DATA__ = null;',
+        `window.__SHARE_DATA__ = ${JSON.stringify(shareData)};`
+      );
+      res.send(html);
+    } else {
+      res.redirect('/');
+    }
+  } catch (error) {
+    console.error('Share target error:', error);
+    res.redirect('/');
+  }
+});
+
 // Serve static files from the dist directory if it exists
 const distPath = path.join(process.cwd(), 'dist');
 if (existsSync(distPath)) {

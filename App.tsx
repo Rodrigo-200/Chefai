@@ -269,6 +269,23 @@ export default function App() {
 
   // Handle PWA Share Target
   useEffect(() => {
+    // Check for server-injected share data (POST method)
+    const serverShareData = (window as any).__SHARE_DATA__;
+    if (serverShareData) {
+      const { url, text, title } = serverShareData;
+      const content = url || text || title;
+      if (content) {
+        const urlMatch = content.match(/(https?:\/\/[^\s]+)/);
+        if (urlMatch) {
+          setSharedUrl(urlMatch[0]);
+          setView('create');
+          // Clear the global to prevent re-triggering
+          (window as any).__SHARE_DATA__ = null;
+        }
+      }
+    }
+
+    // Check for URL params (GET method fallback)
     const params = new URLSearchParams(window.location.search);
     const text = params.get('text');
     const url = params.get('url');
