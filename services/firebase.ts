@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, browserLocalPersistence, setPersistence, connectAuthEmulator } from 'firebase/auth';
-import { initializeFirestore, connectFirestoreEmulator, enableIndexedDbPersistence } from 'firebase/firestore';
+import { initializeFirestore, connectFirestoreEmulator, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 
 // Firebase client initialization
 const firebaseConfig = {
@@ -24,6 +24,7 @@ const usingEmulators = import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true';
 const db = initializeFirestore(app, {
   experimentalAutoDetectLongPolling: !usingEmulators,
   ignoreUndefinedProperties: true,
+  localCache: !usingEmulators ? persistentLocalCache({ tabManager: persistentMultipleTabManager() }) : undefined,
 });
 
 if (usingEmulators) {
@@ -33,15 +34,6 @@ if (usingEmulators) {
 
   connectAuthEmulator(auth, authEmulatorUrl, { disableWarnings: true });
   connectFirestoreEmulator(db, firestoreHost, firestorePort);
-} else {
-  // Enable offline persistence for production
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code == 'failed-precondition') {
-        console.warn('Multiple tabs open, persistence can only be enabled in one tab at a a time.');
-    } else if (err.code == 'unimplemented') {
-        console.warn('The current browser does not support all of the features required to enable persistence');
-    }
-  });
 }
 const googleProvider = new GoogleAuthProvider();
 
