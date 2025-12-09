@@ -1186,7 +1186,7 @@ if (existsSync(distPath)) {
   app.use(express.static(distPath));
   
   // Handle SPA routing by serving index.html for unknown routes
-  app.get('*', (req, res, next) => {
+  app.get(/.*/, (req, res, next) => {
       if (req.path.startsWith('/api')) {
           return next();
       }

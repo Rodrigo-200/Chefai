@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChefHat, BookOpen, PlusCircle, LogOut, Search, Moon, Sun, Shield, Mail, Lock, ArrowRight } from 'lucide-react';
+import { ChefHat, BookOpen, PlusCircle, LogOut, Search, Moon, Sun, Shield, Mail, Lock, ArrowRight, Home, User as UserIcon } from 'lucide-react';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, updateProfile } from 'firebase/auth';
 import { Recipe, AppView, User } from './types';
 import { CreateRecipe } from './components/CreateRecipe';
@@ -450,14 +450,14 @@ export default function App() {
               </button>
               
               {user ? (
-                 <>
+                 <div className="hidden md:flex items-center gap-4">
                   <button 
                     onClick={() => setView('create')}
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${view === 'create' ? 'bg-chef-50 dark:bg-chef-900/50 text-chef-700 dark:text-chef-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
                   >
                     <div className="flex items-center gap-1">
                         <PlusCircle size={18} />
-                        <span className="hidden sm:inline">New Recipe</span>
+                        <span>New Recipe</span>
                     </div>
                   </button>
                   <button 
@@ -466,7 +466,7 @@ export default function App() {
                   >
                      <div className="flex items-center gap-1">
                         <BookOpen size={18} />
-                        <span className="hidden sm:inline">My Cookbook ({savedRecipes.length})</span>
+                        <span>My Cookbook ({savedRecipes.length})</span>
                     </div>
                   </button>
                   <div className="h-6 w-px bg-gray-200 dark:bg-gray-600 mx-2"></div>
@@ -476,7 +476,7 @@ export default function App() {
                           <LogOut size={18} />
                       </button>
                   </div>
-                 </>
+                 </div>
               ) : (
                   <div className="flex items-center gap-2">
                     <button 
@@ -513,7 +513,7 @@ export default function App() {
       {/* Main Content */}
       <main className="flex-1">
         {view === 'create' && (
-           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12 pb-24 md:pb-12">
               <CreateRecipe 
                 onRecipeCreated={handleRecipeCreated} 
                 initialUrl={sharedUrl}
@@ -535,9 +535,9 @@ export default function App() {
         )}
 
         {view === 'dashboard' && (
-             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12 pb-24 md:pb-12">
                 {/* Hero Header */}
-                <div className="relative overflow-hidden bg-gradient-to-br from-chef-600 via-chef-500 to-amber-500 rounded-3xl p-8 md:p-12 mb-10 text-white">
+                <div className="relative overflow-hidden bg-gradient-to-br from-chef-600 via-chef-500 to-amber-500 rounded-3xl p-6 md:p-12 mb-8 md:mb-10 text-white">
                     <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yIDItNCAyLTRzLTItMi00LTItNCAxLTQgMSAwLTMgMi01IDItMiA0LTIgNCAyIDQgMnMwIDItMiA0LTItMi0yLTR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"></div>
                     <div className="relative z-10">
                         <div className="flex items-center gap-3 mb-4">
@@ -638,7 +638,38 @@ export default function App() {
         )}
       </main>
 
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8 mt-auto print:hidden">
+      {/* Bottom Navigation for Mobile */}
+      {user && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 pb-safe z-50">
+          <div className="flex items-center justify-around p-2">
+            <button 
+              onClick={() => setView('dashboard')}
+              className={`flex flex-col items-center p-2 rounded-xl transition-colors ${view === 'dashboard' ? 'text-chef-600 dark:text-chef-400 bg-chef-50 dark:bg-chef-900/50' : 'text-gray-400 dark:text-gray-500'}`}
+            >
+              <Home size={24} />
+              <span className="text-[10px] font-medium mt-1">Home</span>
+            </button>
+            
+            <button 
+              onClick={() => setView('create')}
+              className={`flex flex-col items-center p-2 rounded-xl transition-colors ${view === 'create' ? 'text-chef-600 dark:text-chef-400 bg-chef-50 dark:bg-chef-900/50' : 'text-gray-400 dark:text-gray-500'}`}
+            >
+              <PlusCircle size={24} />
+              <span className="text-[10px] font-medium mt-1">Create</span>
+            </button>
+
+            <button 
+              onClick={logout}
+              className="flex flex-col items-center p-2 rounded-xl text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"
+            >
+              <LogOut size={24} />
+              <span className="text-[10px] font-medium mt-1">Logout</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8 mt-auto print:hidden mb-16 md:mb-0">
         <div className="max-w-7xl mx-auto px-4 text-center">
             <p className="text-gray-400 dark:text-gray-500 text-sm">
                 &copy; 2025 RecipeSnap

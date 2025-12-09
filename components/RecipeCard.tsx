@@ -22,7 +22,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, onRemov
             e.stopPropagation();
             onRemove();
           }}
-          className="absolute top-3 right-3 z-10 w-8 h-8 bg-black/50 hover:bg-red-500 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-colors opacity-0 group-hover:opacity-100"
+          className="absolute top-3 right-3 z-10 w-8 h-8 bg-black/50 hover:bg-red-500 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
           title="Remove from saved"
         >
           <X size={16} />
@@ -51,8 +51,8 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, onRemov
             <ChefHat size={40} />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" />
+        <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           {recipe.cuisine && (
             <span className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm px-2.5 py-1 rounded-lg text-xs font-semibold text-gray-800 dark:text-gray-200 shadow-sm">
               {recipe.cuisine}
