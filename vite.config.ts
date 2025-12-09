@@ -1,6 +1,7 @@
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
@@ -17,7 +18,38 @@ export default defineConfig(({ mode }) => {
         }
       },
     },
-    plugins: [react()],
+    plugins: [
+      react(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['icon.svg'],
+        manifest: {
+          name: 'ChefAI - Intelligent Recipe Extractor',
+          short_name: 'ChefAI',
+          description: 'Extract recipes from videos, images, and websites automatically using AI.',
+          theme_color: '#ffffff',
+          background_color: '#ffffff',
+          display: 'standalone',
+          icons: [
+            {
+              src: 'icon.svg',
+              sizes: 'any',
+              type: 'image/svg+xml',
+              purpose: 'any maskable'
+            }
+          ],
+          share_target: {
+            action: "/",
+            method: "GET",
+            params: {
+              title: "title",
+              text: "text",
+              url: "url"
+            }
+          }
+        }
+      })
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

@@ -10,6 +10,7 @@
     "firebase:emulators": "firebase emulators:start --only firestore,auth",
     "dev:emulated": "concurrently \"npm run firebase:emulators\" \"npm run dev:full\"",
     "build": "vite build",
+    "start": "node server/index.js",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -42,6 +43,7 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.13",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "vite-plugin-pwa": "^1.2.0"
   }
 }

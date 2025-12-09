@@ -265,6 +265,32 @@ export default function App() {
   const { user, authLoading, authError, loginWithGoogle, loginWithEmail, logout, saveUserRecipe, unsaveUserRecipe } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const { isDark, toggleDark } = useDarkMode();
+  const [sharedUrl, setSharedUrl] = useState<string | null>(null);
+
+  // Handle PWA Share Target
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const text = params.get('text');
+    const url = params.get('url');
+    const title = params.get('title');
+
+    const content = url || text || title;
+    if (content) {
+      const urlMatch = content.match(/(https?:\/\/[^\s]+)/);
+      if (urlMatch) {
+        setSharedUrl(urlMatch[0]);
+        setView('create');
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, []);
+
+  // Clear shared URL when leaving create view
+  useEffect(() => {
+    if (view !== 'create') {
+      setSharedUrl(null);
+    }
+  }, [view]);
 
   // Load recipes for the current user (cloud) or fallback to local for guests
   useEffect(() => {
@@ -488,7 +514,10 @@ export default function App() {
       <main className="flex-1">
         {view === 'create' && (
            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-              <CreateRecipe onRecipeCreated={handleRecipeCreated} />
+              <CreateRecipe 
+                onRecipeCreated={handleRecipeCreated} 
+                initialUrl={sharedUrl}
+              />
            </div>
         )}
 

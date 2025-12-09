@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 import { franc } from 'franc';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
-import { promises as fs } from 'node:fs';
+import { promises as fs, existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
@@ -1179,6 +1179,20 @@ app.post('/api/recipes', upload.array('media'), async (req, res) => {
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', hasGeminiKey: Boolean(GEMINI_KEY) });
 });
+
+// Serve static files from the dist directory if it exists
+const distPath = path.join(process.cwd(), 'dist');
+if (existsSync(distPath)) {
+  app.use(express.static(distPath));
+  
+  // Handle SPA routing by serving index.html for unknown routes
+  app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) {
+          return next();
+      }
+      res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
 
 app.listen(port, () => {
   console.log(`ChefAI server running on http://localhost:${port}`);

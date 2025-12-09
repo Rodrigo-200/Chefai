@@ -31,6 +31,7 @@ const ROTATING_WORDS = [
 
 interface CreateRecipeProps {
   onRecipeCreated: (recipe: Recipe) => void;
+  initialUrl?: string | null;
 }
 
 type LanguageOption = {
@@ -56,7 +57,7 @@ const isLikelyUrl = (value: string) => {
   return /^https?:\/\//i.test(trimmed) || /^(www\.)?[a-z0-9-]+\.[a-z]{2,}/i.test(trimmed);
 };
 
-export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated }) => {
+export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated, initialUrl }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState<string>('');
@@ -74,6 +75,13 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated }) =
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const hasAutoSubmitted = useRef(false);
+
+  useEffect(() => {
+    if (initialUrl) {
+      setMainInput(initialUrl);
+    }
+  }, [initialUrl]);
 
   useEffect(() => {
     return () => {
@@ -317,6 +325,13 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated }) =
       setLoadingStep('');
     }
   };
+
+  useEffect(() => {
+    if (initialUrl && mainInput === initialUrl && !isLoading && !hasAutoSubmitted.current && auth.currentUser) {
+        hasAutoSubmitted.current = true;
+        handleSubmit();
+    }
+  }, [mainInput, initialUrl, isLoading, auth.currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderPreview = () => {
     if (!selectedFiles.length) return null;
