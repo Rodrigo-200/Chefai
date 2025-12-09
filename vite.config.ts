@@ -43,12 +43,19 @@ export default defineConfig(({ mode }) => {
           scope: '/',
           start_url: '/',
           share_target: {
-            action: "/",
-            method: "GET",
+            action: "/share-target",
+            method: "POST",
+            enctype: "multipart/form-data",
             params: {
               title: "title",
               text: "text",
-              url: "url"
+              url: "url",
+              files: [
+                {
+                  name: "media",
+                  accept: ["image/*", "video/*"]
+                }
+              ]
             }
           }
         }

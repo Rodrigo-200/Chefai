@@ -1181,8 +1181,9 @@ app.get('/health', (_req, res) => {
 });
 
 // Handle Share Target POST requests
-app.post('/share-target', upload.none(), async (req, res) => {
+app.post('/share-target', upload.any(), async (req, res) => {
   try {
+    console.log('Received share data:', req.body);
     const shareData = {
       title: req.body.title,
       text: req.body.text,
