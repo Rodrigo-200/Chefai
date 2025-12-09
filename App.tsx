@@ -427,7 +427,7 @@ export default function App() {
   return (
     <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans flex flex-col transition-colors`}>
       {/* Navigation */}
-      <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 print:hidden">
+      <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 print:hidden hidden md:block">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center cursor-pointer" onClick={() => setView('create')}>
@@ -509,6 +509,24 @@ export default function App() {
           </div>
         </div>
       </nav>
+
+      {/* Mobile Header */}
+      <div className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+              <div className="bg-chef-600 p-1.5 rounded-lg text-white">
+                <ChefHat size={20} />
+              </div>
+              <span className="font-serif text-lg font-bold tracking-tight text-gray-900 dark:text-white">
+                Recipe<span className="text-chef-600">Snap</span>
+              </span>
+          </div>
+          <button
+            onClick={toggleDark}
+            className="p-2 rounded-lg text-gray-500 dark:text-gray-400"
+          >
+            {isDark ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+      </div>
 
       {/* Main Content */}
       <main className="flex-1">
@@ -640,21 +658,21 @@ export default function App() {
 
       {/* Bottom Navigation for Mobile */}
       {user && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 pb-safe z-50">
-          <div className="flex items-center justify-around p-2">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+          <div className="flex items-center justify-around p-3">
             <button 
               onClick={() => setView('dashboard')}
-              className={`flex flex-col items-center p-2 rounded-xl transition-colors ${view === 'dashboard' ? 'text-chef-600 dark:text-chef-400 bg-chef-50 dark:bg-chef-900/50' : 'text-gray-400 dark:text-gray-500'}`}
+              className={`flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${view === 'dashboard' ? 'text-chef-600 dark:text-chef-400 bg-chef-50 dark:bg-chef-900/50 scale-105' : 'text-gray-400 dark:text-gray-500'}`}
             >
-              <Home size={24} />
+              <Home size={24} strokeWidth={view === 'dashboard' ? 2.5 : 2} />
               <span className="text-[10px] font-medium mt-1">Home</span>
             </button>
             
             <button 
               onClick={() => setView('create')}
-              className={`flex flex-col items-center p-2 rounded-xl transition-colors ${view === 'create' ? 'text-chef-600 dark:text-chef-400 bg-chef-50 dark:bg-chef-900/50' : 'text-gray-400 dark:text-gray-500'}`}
+              className={`flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${view === 'create' ? 'text-chef-600 dark:text-chef-400 bg-chef-50 dark:bg-chef-900/50 scale-105' : 'text-gray-400 dark:text-gray-500'}`}
             >
-              <PlusCircle size={24} />
+              <PlusCircle size={24} strokeWidth={view === 'create' ? 2.5 : 2} />
               <span className="text-[10px] font-medium mt-1">Create</span>
             </button>
 
