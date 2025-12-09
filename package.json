@@ -7,6 +7,8 @@
     "dev": "vite",
     "dev:server": "node server/index.js",
     "dev:full": "concurrently \"npm run dev:server\" \"npm run dev\"",
+    "firebase:emulators": "firebase emulators:start --only firestore,auth",
+    "dev:emulated": "concurrently \"npm run firebase:emulators\" \"npm run dev:full\"",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -15,7 +17,9 @@
     "@google/genai": "^1.30.0",
     "cors": "^2.8.5",
     "express": "^5.0.1",
+    "express-rate-limit": "^8.2.1",
     "file-saver": "^2.0.5",
+    "firebase": "^11.10.0",
     "fluent-ffmpeg": "^2.1.2",
     "franc": "^6.2.0",
     "html2canvas": "^1.4.1",
@@ -32,8 +36,11 @@
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "autoprefixer": "^10.4.20",
     "concurrently": "^8.2.2",
     "dotenv": "^16.4.7",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.13",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

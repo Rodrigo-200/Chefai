@@ -12,6 +12,7 @@ import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
 import { jsonrepair } from 'jsonrepair';
+import rateLimit from 'express-rate-limit';
 
 const envPath = path.resolve(process.cwd(), '.env.local');
 dotenv.config({ path: envPath });
@@ -23,6 +24,18 @@ if (!GEMINI_KEY) {
 
 const app = express();
 const port = process.env.PORT || 4000;
+
+// Rate limiting: Max 10 requests per 15 minutes per IP
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 requests per windowMs
+  message: { error: 'Too many requests from this IP, please try again after 15 minutes' },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+// Apply rate limiting to API routes
+app.use('/api/', limiter);
 
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));

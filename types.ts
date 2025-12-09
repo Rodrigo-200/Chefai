@@ -54,7 +54,11 @@ export interface Recipe {
 }
 
 export interface User {
-  username: string;
+  uid: string;
+  displayName?: string;
+  email?: string;
+  photoURL?: string;
+  provider?: string;
   savedRecipeIds: string[];
 }
 

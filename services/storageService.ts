@@ -1,5 +1,7 @@
 import localforage from 'localforage';
+import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
 import { Recipe } from '../types';
+import { db } from './firebase';
 
 const recipeStore = localforage.createInstance({
   name: 'chefai',
@@ -53,5 +55,47 @@ export const saveRecipes = async (recipes: Recipe[]): Promise<void> => {
     await recipeStore.setItem(LEGACY_KEY, recipes);
   } catch (error) {
     console.error('Failed to persist recipes', error);
+  }
+};
+
+const userRecipesCollection = (uid: string) => collection(db, 'users', uid, 'recipes');
+
+export const loadUserRecipes = async (uid: string): Promise<Recipe[]> => {
+  try {
+    console.log(`Loading recipes for user ${uid}...`);
+    const snap = await getDocs(userRecipesCollection(uid));
+    console.log(`Loaded ${snap.size} recipes for user ${uid}`);
+    return snap.docs.map(d => d.data() as Recipe);
+  } catch (err) {
+    console.error('Could not load recipes from Firestore', err);
+    return [];
+  }
+};
+
+export const saveRecipeForUser = async (uid: string, recipe: Recipe) => {
+  try {
+    console.log(`Saving recipe ${recipe.id} for user ${uid}...`);
+    if (!recipe.id) throw new Error("Recipe ID is missing");
+    
+    // Ensure undefined values are removed or handled if ignoreUndefinedProperties is not enough
+    const cleanRecipe = JSON.parse(JSON.stringify(recipe));
+    
+    await setDoc(doc(userRecipesCollection(uid), recipe.id), cleanRecipe, { merge: true });
+    console.log(`Successfully saved recipe ${recipe.id}`);
+  } catch (err) {
+    console.error('Could not save recipe to Firestore', err);
+    throw err;
+  }
+};
+
+export const saveRecipesForUser = async (uid: string, recipes: Recipe[]) => {
+  await Promise.all(recipes.map(r => saveRecipeForUser(uid, r)));
+};
+
+export const deleteRecipeForUser = async (uid: string, recipeId: string) => {
+  try {
+    await deleteDoc(doc(userRecipesCollection(uid), recipeId));
+  } catch (err) {
+    console.warn('Could not delete recipe from Firestore', err);
   }
 };

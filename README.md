@@ -29,9 +29,14 @@ GEMINI_API_KEY=your-key-here
 PORT=4000                # optional, defaults to 4000
 VITE_API_BASE_URL=       # optional, leave blank for same-origin proxy
 VITE_API_PROXY=http://localhost:4000
+VITE_USE_FIREBASE_EMULATORS=false
+VITE_FIREBASE_AUTH_EMULATOR_URL=http://127.0.0.1:9099
+VITE_FIRESTORE_EMULATOR_HOST=127.0.0.1
+VITE_FIRESTORE_EMULATOR_PORT=8080
 ```
 
 > `VITE_API_PROXY` lets Vite proxy `/api/*` calls to the Express server during local development.
+> Leave `VITE_USE_FIREBASE_EMULATORS=false` to talk to your hosted Firebase project. Flip it to `true` to keep everything local (see below).
 
 ### 3. Run the full stack
 
@@ -63,7 +68,30 @@ You can confirm the API is live by opening http://localhost:4000/health or runni
 curl http://localhost:4000/health
 ```
 
-### 4. Build for production
+### 4. Optional: run fully offline with Firebase emulators
+
+If your network blocks `firestore.googleapis.com`, keep auth + recipe storage local:
+
+```bash
+export VITE_USE_FIREBASE_EMULATORS=true
+npm run firebase:emulators   # starts Firestore + Auth on 8080 / 9099
+```
+
+In a second terminal:
+
+```bash
+npm run dev
+```
+
+Or run both together:
+
+```bash
+VITE_USE_FIREBASE_EMULATORS=true npm run dev:emulated
+```
+
+The UI will now talk exclusively to the local emulators, so no external Google domains are required.
+
+### 5. Build for production
 
 ```bash
 npm run build

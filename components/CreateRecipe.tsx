@@ -8,9 +8,16 @@ import {
   ChevronDown,
   FileText,
   Sparkles,
+  Utensils,
+  Soup,
+  Pizza,
+  Coffee,
+  Sandwich,
+  Clock,
 } from 'lucide-react';
 import { generateRecipe } from '../services/geminiService';
 import { Recipe } from '../types';
+import { auth } from '../services/firebase';
 
 const ROTATING_WORDS = [
   { text: 'TikTok videos', color: 'text-pink-500' },
@@ -96,6 +103,38 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated }) =
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, []);
 
+  const compressImage = (source: string | File, maxWidth = 800, quality = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas unavailable'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      if (typeof source === 'string') {
+          img.src = source;
+      } else if (source instanceof File) {
+          img.src = URL.createObjectURL(source);
+      }
+    });
+  };
+
   const captureFrameFromVideo = (file: File) => {
     return new Promise<string>((resolve, reject) => {
       const videoEl = document.createElement('video');
@@ -105,15 +144,25 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated }) =
       videoEl.playsInline = true;
       videoEl.onloadeddata = () => {
         const canvas = document.createElement('canvas');
-        canvas.width = videoEl.videoWidth;
-        canvas.height = videoEl.videoHeight;
+        // Resize video frame if too large
+        const maxWidth = 800;
+        let width = videoEl.videoWidth;
+        let height = videoEl.videoHeight;
+        if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        
         const ctx = canvas.getContext('2d');
         if (!ctx) {
           reject(new Error('Canvas unavailable'));
           return;
         }
-        ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/png'));
+        ctx.drawImage(videoEl, 0, 0, width, height);
+        // Use JPEG with 0.7 quality to reduce size significantly
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
         URL.revokeObjectURL(videoEl.src);
       };
       videoEl.onerror = (err) => reject(err);
@@ -182,6 +231,10 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated }) =
   const submitDisabled = isLoading || !hasContent;
 
   const handleSubmit = async () => {
+    if (!auth.currentUser) {
+        setError("Please sign in to generate recipes.");
+        return;
+    }
     try {
       setIsLoading(true);
       setError(null);
@@ -199,6 +252,40 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated }) =
 
       setLoadingStep('Building your recipe card...');
 
+      // Ensure we have a valid image URL (compressed base64)
+      let finalImageUrl = response.metadata.coverImage || response.recipe.imageUrl;
+      
+      // If the image is a base64 string, check its size and compress if needed
+      if (finalImageUrl && finalImageUrl.startsWith('data:image')) {
+          try {
+              // If it's larger than ~500KB, compress it
+              if (finalImageUrl.length > 500 * 1024) {
+                  console.log("Compressing large base64 image from server...");
+                  finalImageUrl = await compressImage(finalImageUrl);
+              }
+          } catch (e) {
+              console.warn("Failed to compress server image", e);
+              // If compression fails, we might want to discard it if it's too huge
+              if (finalImageUrl.length > 1000 * 1024) {
+                  console.warn("Discarding oversized image that failed compression");
+                  finalImageUrl = undefined;
+              }
+          }
+      }
+
+      if (!finalImageUrl) {
+          if (capturedFrame) {
+              finalImageUrl = capturedFrame;
+          } else if (selectedFiles.length > 0 && selectedFiles[0].type.startsWith('image/')) {
+              // Compress the uploaded image
+              try {
+                  finalImageUrl = await compressImage(selectedFiles[0]);
+              } catch (e) {
+                  console.warn("Failed to compress image", e);
+              }
+          }
+      }
+
       const now = Date.now();
       const recipe: Recipe = {
         id: now.toString(),
@@ -214,12 +301,7 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated }) =
         nutrition: response.recipe.nutrition || {},
         tags: response.recipe.tags || [],
         sourceUrl: inputIsUrl ? mainInput.trim() : response.recipe.sourceUrl,
-        imageUrl:
-          response.metadata.coverImage ||
-          capturedFrame ||
-          previewUrls[0] ||
-          response.recipe.imageUrl ||
-          undefined,
+        imageUrl: finalImageUrl,
         languageCode: response.metadata.languageCode || languageHint,
         transcript: response.metadata.transcript,
         ocrText: response.metadata.ocrText,
@@ -309,7 +391,8 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated }) =
       </div>
 
       {/* Main Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+        {isLoading && <LoadingOverlay step={loadingStep} />}
         <div className="p-5 sm:p-6">
           {/* Unified Drop Zone / Upload */}
           {!selectedFiles.length ? (
@@ -384,7 +467,7 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated }) =
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5 flex items-center gap-1">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5 flex items-center gap-1">
                   <Languages size={14} /> Output language
                 </label>
                 <select
@@ -440,6 +523,51 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated }) =
             Supports TikTok, Instagram, YouTube, blogs & more
           </p>
         </div>
+      </div>
+    </div>
+  );
+};
+
+const LoadingOverlay = ({ step }: { step: string }) => {
+  const [toolIndex, setToolIndex] = useState(0);
+  const tools = [
+    { icon: <Utensils size={48} />, color: 'text-orange-500' },
+    { icon: <Soup size={48} />, color: 'text-red-500' },
+    { icon: <Pizza size={48} />, color: 'text-yellow-500' },
+    { icon: <Coffee size={48} />, color: 'text-brown-500' },
+    { icon: <Sandwich size={48} />, color: 'text-green-500' },
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setToolIndex((prev) => (prev + 1) % tools.length);
+    }, 800);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="absolute inset-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center rounded-2xl">
+      <div className="relative mb-8">
+        <div className="absolute inset-0 bg-chef-500/20 rounded-full blur-xl animate-pulse" />
+        <div className={`relative transition-all duration-500 transform ${tools[toolIndex].color}`}>
+          {tools[toolIndex].icon}
+        </div>
+        {/* Floating bubbles/steam */}
+        <div className="absolute -top-8 left-1/2 -translate-x-1/2">
+           <CookingAnimation />
+        </div>
+      </div>
+      
+      <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+        Cooking up your recipe...
+      </h3>
+      <p className="text-gray-500 dark:text-gray-400 mb-8 text-lg animate-pulse">
+        {step}
+      </p>
+
+      <div className="flex items-center gap-2 text-sm font-medium text-chef-600 dark:text-chef-400 bg-chef-50 dark:bg-chef-900/30 px-4 py-2 rounded-full">
+        <Clock size={16} />
+        <span>Estimated wait: 30-60 seconds</span>
       </div>
     </div>
   );

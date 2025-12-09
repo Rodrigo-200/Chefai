@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ChefHat, BookOpen, PlusCircle, LogOut, Search, Moon, Sun } from 'lucide-react';
+import { ChefHat, BookOpen, PlusCircle, LogOut, Search, Moon, Sun, Shield, Mail, Lock, ArrowRight } from 'lucide-react';
+import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, updateProfile } from 'firebase/auth';
 import { Recipe, AppView, User } from './types';
 import { CreateRecipe } from './components/CreateRecipe';
 import { RecipeView } from './components/RecipeView';
 import { RecipeCard } from './components/RecipeCard';
-import { loadRecipes, saveRecipes, migrateLegacyRecipes } from './services/storageService';
+import { loadRecipes, saveRecipes, migrateLegacyRecipes, loadUserRecipes, saveRecipeForUser, deleteRecipeForUser } from './services/storageService';
+import { auth, googleProvider } from './services/firebase';
+import { addSavedRecipeId, ensureUserProfile, removeSavedRecipeId } from './services/userService';
 
 // Dark mode hook
 const useDarkMode = () => {
@@ -26,104 +29,323 @@ const useDarkMode = () => {
   return { isDark, toggleDark: () => setIsDark(!isDark) };
 };
 
-// Mock Authentication
+// Firebase Authentication
 const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('chef_ai_user');
-    if (stored) {
-      setUser(JSON.parse(stored));
-    }
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      try {
+        if (!fbUser) {
+          setUser(null);
+          setAuthLoading(false);
+          return;
+        }
+        const profile = await ensureUserProfile(fbUser);
+        setUser(profile);
+        setAuthError(null);
+      } catch (err: any) {
+        setAuthError(err?.message || 'Authentication unavailable');
+        setUser(null);
+      } finally {
+        setAuthLoading(false);
+      }
+    }, (err) => {
+      setAuthError(err?.message || 'Authentication unavailable');
+      setAuthLoading(false);
+    });
+    return unsubscribe;
   }, []);
 
-  const login = (username: string) => {
-    const newUser = { username, savedRecipeIds: [] };
-    // Check if existing user data to merge saved recipes (mock DB)
-    const existing = localStorage.getItem(`user_data_${username}`);
-    if (existing) {
-        newUser.savedRecipeIds = JSON.parse(existing).savedRecipeIds;
+  const loginWithGoogle = async () => {
+    setAuthError(null);
+    await signInWithPopup(auth, googleProvider);
+  };
+
+  const loginWithEmail = async (email: string, password: string, mode: 'signin' | 'signup' = 'signin', displayName?: string) => {
+    setAuthError(null);
+    try {
+      if (mode === 'signup') {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        if (displayName && userCredential.user) {
+            await updateProfile(userCredential.user, { displayName });
+            // Force refresh user to get the new display name
+            await userCredential.user.reload();
+            const updatedUser = auth.currentUser;
+            if (updatedUser) {
+                const profile = await ensureUserProfile(updatedUser);
+                setUser(profile);
+            }
+        }
+        return;
+      }
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err: any) {
+      setAuthError(err?.message || 'Login failed');
+      throw err;
     }
-    
-    setUser(newUser);
-    localStorage.setItem('chef_ai_user', JSON.stringify(newUser));
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await signOut(auth);
     setUser(null);
-    localStorage.removeItem('chef_ai_user');
   };
 
-  const saveUserRecipe = (recipeId: string) => {
-      if(!user) return;
-      const updatedIds = [...new Set([...user.savedRecipeIds, recipeId])];
-      const updatedUser = { ...user, savedRecipeIds: updatedIds };
-      setUser(updatedUser);
-      localStorage.setItem('chef_ai_user', JSON.stringify(updatedUser));
-      localStorage.setItem(`user_data_${user.username}`, JSON.stringify(updatedUser));
+  const saveUserRecipe = async (recipeId: string) => {
+    if (!user) return;
+    await addSavedRecipeId(user.uid, recipeId);
+    setUser({ ...user, savedRecipeIds: Array.from(new Set([...user.savedRecipeIds, recipeId])) });
   };
 
-  const unsaveUserRecipe = (recipeId: string) => {
-      if(!user) return;
-      const updatedIds = user.savedRecipeIds.filter(id => id !== recipeId);
-      const updatedUser = { ...user, savedRecipeIds: updatedIds };
-      setUser(updatedUser);
-      localStorage.setItem('chef_ai_user', JSON.stringify(updatedUser));
-      localStorage.setItem(`user_data_${user.username}`, JSON.stringify(updatedUser));
+  const unsaveUserRecipe = async (recipeId: string) => {
+    if (!user) return;
+    await removeSavedRecipeId(user.uid, recipeId);
+    setUser({ ...user, savedRecipeIds: user.savedRecipeIds.filter(id => id !== recipeId) });
   };
 
-  return { user, login, logout, saveUserRecipe, unsaveUserRecipe };
+  return { user, authLoading, authError, loginWithGoogle, loginWithEmail, logout, saveUserRecipe, unsaveUserRecipe };
+};
+
+type LoginScreenProps = {
+  onGoogle: () => Promise<void>;
+  onEmail: (email: string, password: string, mode: 'signin' | 'signup', displayName?: string) => Promise<void>;
+  isDark: boolean;
+  toggleDark: () => void;
+  authError: string | null;
+};
+
+const LoginScreen: React.FC<LoginScreenProps> = ({ onGoogle, onEmail, isDark, toggleDark, authError }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      await onEmail(email, password, mode, displayName);
+      setMessage(mode === 'signup' ? 'Account created, redirecting...' : 'Signed in!');
+    } catch {
+      // authError already set in hook
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className={`min-h-screen flex items-center justify-center px-4 ${isDark ? 'bg-gray-950 text-gray-100' : 'bg-gradient-to-br from-chef-50 via-white to-amber-50 text-gray-900'}`}>
+      <button
+        onClick={toggleDark}
+        className="absolute top-4 right-4 p-2 rounded-full bg-white/70 dark:bg-gray-800 shadow hover:shadow-lg transition"
+        title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      >
+        {isDark ? <Sun size={18} /> : <Moon size={18} />}
+      </button>
+
+      <div className="max-w-4xl w-full grid md:grid-cols-2 gap-8 items-center">
+        <div className="space-y-4">
+          <div className="inline-flex items-center gap-3 px-3 py-2 bg-white/80 dark:bg-gray-800 rounded-full shadow">
+            <div className="bg-chef-600 text-white p-2 rounded-full"><ChefHat size={18} /></div>
+            <span className="font-semibold">RecipeSnap</span>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold leading-tight">Sign in to save and sync your cookbook</h1>
+          <p className="text-gray-600 dark:text-gray-400 max-w-lg">Use Google or email to keep your recipes synced across devices. Creating an account is free and instant.</p>
+          <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+            <Shield size={18} />
+            <span>Secure Firebase Auth · Your recipes stay private to your account</span>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-900/80 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-xl p-6 space-y-4">
+          <button
+            onClick={onGoogle}
+            disabled={submitting}
+            className="w-full inline-flex items-center justify-center gap-2 bg-chef-600 hover:bg-chef-700 text-white font-semibold py-3 rounded-xl shadow transition disabled:opacity-60"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 533.5 544.3" aria-hidden="true"><path fill="#4285F4" d="M533.5 278.4c0-17.4-1.5-34.1-4.3-50.4H272v95.4h147.3c-6.4 34.8-25.7 64.3-54.8 84v69h88.5c51.6-47.6 80.5-117.8 80.5-198z"/><path fill="#34A853" d="M272 544.3c73.7 0 135.6-24.5 180.8-66.3l-88.5-69c-24.6 16.5-56 26.2-92.3 26.2-71 0-131.1-47.9-152.5-112.2H27.4v70.5c45 89.1 137.4 150.8 244.6 150.8z"/><path fill="#FBBC05" d="M119.5 322.9c-10.8-32.5-10.8-67.6 0-100.1V152.3H27.4c-36.6 72.9-36.6 159.2 0 232.1l92.1-61.5z"/><path fill="#EA4335" d="M272 107.7c39.9-.6 77.8 14.1 106.8 40.8l80-80C412.9 24.6 347.9-.6 272 0 164.8 0 72.4 61.7 27.4 152.3l92.1 70.5C140.9 155.6 201 107.7 272 107.7z"/></svg>
+            Continue with Google
+          </button>
+
+          <div className="flex items-center gap-3">
+            <div className="h-px bg-gray-200 dark:bg-gray-800 flex-1" />
+            <span className="text-xs uppercase tracking-wide text-gray-500">or</span>
+            <div className="h-px bg-gray-200 dark:bg-gray-800 flex-1" />
+          </div>
+
+          <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl mb-4">
+            <button
+              onClick={() => setMode('signin')}
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
+                mode === 'signin'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => setMode('signup')}
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
+                mode === 'signup'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          <form className="space-y-3" onSubmit={handleEmailSubmit}>
+            {mode === 'signup' && (
+              <div className="relative">
+                <div className="absolute left-3 top-3 text-gray-400">
+                  <ChefHat size={18} />
+                </div>
+                <input
+                  type="text"
+                  required={mode === 'signup'}
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Username"
+                  className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-chef-500 outline-none"
+                />
+              </div>
+            )}
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 text-gray-400" size={18} />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-chef-500 outline-none"
+              />
+            </div>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 text-gray-400" size={18} />
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password (min 6 chars)"
+                className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-chef-500 outline-none"
+              />
+            </div>
+            {authError && <p className="text-red-500 text-sm">{authError}</p>}
+            {message && <p className="text-chef-700 text-sm">{message}</p>}
+            
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full inline-flex items-center justify-center gap-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-semibold py-3 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-60 mt-2"
+            >
+              {submitting ? 'Please wait...' : mode === 'signup' ? 'Create account' : 'Sign in'}
+              <ArrowRight size={16} />
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default function App() {
   const [view, setView] = useState<AppView>('create');
   const [activeRecipe, setActiveRecipe] = useState<Recipe | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const { user, login, logout, saveUserRecipe, unsaveUserRecipe } = useAuth();
+  const { user, authLoading, authError, loginWithGoogle, loginWithEmail, logout, saveUserRecipe, unsaveUserRecipe } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const { isDark, toggleDark } = useDarkMode();
 
-  // Load recipes from local storage on mount
+  // Load recipes for the current user (cloud) or fallback to local for guests
   useEffect(() => {
     let mounted = true;
     (async () => {
       await migrateLegacyRecipes();
-      const stored = await loadRecipes();
-      if (mounted && stored.length) {
-        setRecipes(stored);
+      if (user) {
+        console.log("User logged in, loading cloud recipes for:", user.uid);
+        try {
+          const cloudRecipes = await loadUserRecipes(user.uid);
+          if (mounted) {
+            console.log("Cloud recipes loaded:", cloudRecipes.length);
+            setRecipes(cloudRecipes);
+          }
+        } catch (e) {
+          console.error("Error loading cloud recipes:", e);
+        }
+      } else {
+        console.log("No user, loading local recipes");
+        const localRecipes = await loadRecipes();
+        if (mounted) setRecipes(localRecipes);
       }
     })();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [user]);
 
-  const handleRecipeCreated = (recipe: Recipe) => {
+  const handleRecipeCreated = async (recipe: Recipe) => {
     // Add to local state and storage
     const newRecipes = [recipe, ...recipes];
     setRecipes(newRecipes);
-    void saveRecipes(newRecipes);
     
     setActiveRecipe(recipe);
     setView('recipe-detail');
+
+    try {
+      if (user) {
+        await saveRecipeForUser(user.uid, recipe);
+        // Automatically bookmark created recipes
+        await saveUserRecipe(recipe.id);
+      } else {
+        await saveRecipes(newRecipes);
+      }
+    } catch (error) {
+      console.error("Failed to save created recipe:", error);
+      alert("Failed to save recipe. Please try again.");
+    }
   };
 
-  const handleSaveRecipe = (recipe: Recipe) => {
+  const handleSaveRecipe = async (recipe: Recipe) => {
       if (!user) {
           alert("Please login to save recipes!");
           return;
       }
-      saveUserRecipe(recipe.id);
+      try {
+        await saveRecipeForUser(user.uid, recipe);
+        await saveUserRecipe(recipe.id);
+      } catch (error) {
+        console.error("Failed to save recipe:", error);
+        alert("Failed to save recipe. Please try again.");
+      }
   };
 
-  const handleUnsaveRecipe = (recipe: Recipe) => {
-      unsaveUserRecipe(recipe.id);
+  const handleUnsaveRecipe = async (recipe: Recipe) => {
+      try {
+        await unsaveUserRecipe(recipe.id);
+      } catch (error) {
+        console.error("Failed to unsave recipe:", error);
+        alert("Failed to unsave recipe. Please try again.");
+      }
   };
 
   const handleDeleteRecipe = async (recipeId: string) => {
       const newRecipes = recipes.filter(r => r.id !== recipeId);
       setRecipes(newRecipes);
-      await saveRecipes(newRecipes);
+      if (user) {
+        await deleteRecipeForUser(user.uid, recipeId);
+      } else {
+        await saveRecipes(newRecipes);
+      }
       if (activeRecipe?.id === recipeId) {
           setActiveRecipe(null);
           setView('dashboard');
@@ -134,7 +356,16 @@ export default function App() {
       const newRecipes = recipes.map(r => r.id === updatedRecipe.id ? updatedRecipe : r);
       setRecipes(newRecipes);
       setActiveRecipe(updatedRecipe);
-      await saveRecipes(newRecipes);
+      try {
+        if (user) {
+          await saveRecipeForUser(user.uid, updatedRecipe);
+        } else {
+          await saveRecipes(newRecipes);
+        }
+      } catch (error) {
+        console.error("Failed to update recipe:", error);
+        alert("Failed to update recipe. Please try again.");
+      }
   };
 
   const filteredRecipes = recipes.filter(r => {
@@ -146,6 +377,26 @@ export default function App() {
   });
 
   const savedRecipes = user ? recipes.filter(r => user.savedRecipeIds.includes(r.id)) : [];
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-200">
+        <p className="text-lg font-medium">Loading your cookbook...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <LoginScreen
+        onGoogle={loginWithGoogle}
+        onEmail={loginWithEmail}
+        isDark={isDark}
+        toggleDark={toggleDark}
+        authError={authError}
+      />
+    );
+  }
 
   return (
     <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans flex flex-col transition-colors`}>
@@ -194,22 +445,39 @@ export default function App() {
                   </button>
                   <div className="h-6 w-px bg-gray-200 dark:bg-gray-600 mx-2"></div>
                   <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{user.username}</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{user.displayName || user.email || 'You'}</span>
                       <button onClick={logout} className="text-gray-400 hover:text-red-500">
                           <LogOut size={18} />
                       </button>
                   </div>
                  </>
               ) : (
-                  <button 
-                    onClick={() => {
-                        const name = prompt("Enter a username to login (Mock Auth):");
-                        if(name) login(name);
-                    }}
-                    className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                  >
-                    Login / Sign Up
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => loginWithGoogle()}
+                      className="bg-chef-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-chef-700 transition-colors"
+                    >
+                      Google Login
+                    </button>
+                    <button 
+                      onClick={async () => {
+                        const email = prompt('Enter email');
+                        if (!email) return;
+                        const password = prompt('Enter password (min 6 chars)');
+                        if (!password) return;
+                        try {
+                          await loginWithEmail(email, password, 'signin');
+                        } catch (err) {
+                          if (confirm('No account found. Create one?')) {
+                            await loginWithEmail(email, password, 'signup');
+                          }
+                        }
+                      }}
+                      className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                    >
+                      Email Login
+                    </button>
+                  </div>
               )}
             </div>
           </div>
