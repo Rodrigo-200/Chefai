@@ -34,15 +34,17 @@ export default defineConfig(({ mode }) => {
           icons: [
             {
               src: 'icon.svg',
-              sizes: 'any',
+              sizes: '192x192 512x512',
               type: 'image/svg+xml',
               purpose: 'any maskable'
             }
           ],
+          id: '/',
+          scope: '/',
+          start_url: '/',
           share_target: {
-            action: "/share-target",
-            method: "POST",
-            enctype: "multipart/form-data",
+            action: "/",
+            method: "GET",
             params: {
               title: "title",
               text: "text",
