@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Recipe } from '../types';
-import { ArrowLeft, Clock, Printer, FileText, FileDown, Globe, ChevronDown, Copy, Download, Heart, Trash2, Edit3, X, Check, AlertCircle, Plus, ChefHat, Users } from 'lucide-react';
+import { ArrowLeft, Clock, Printer, FileText, FileDown, Globe, ChevronDown, Copy, Download, Heart, Trash2, Edit3, X, Check, AlertCircle, Plus, ChefHat, Users, Flame, Utensils } from 'lucide-react';
 import { downloadMarkdown, downloadPlainText, exportRecipeToPDF } from '../services/exportService';
 
 interface RecipeViewProps {
@@ -234,47 +234,59 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                             {recipe.cuisine}
                         </span>
                     )}
-                    <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
+                    <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
                         {recipe.title}
                     </h1>
-                    <p className="text-gray-600 dark:text-gray-400 leading-relaxed max-w-2xl mx-auto mb-6">
+                    <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto mb-8 font-serif">
                         {recipe.description}
                     </p>
                 </>
             )}
 
             {/* Stats Row */}
-            <div className="flex flex-wrap justify-center gap-4 md:gap-8 pt-6 border-t border-gray-100 dark:border-gray-800">
-                <div className="flex flex-col items-center">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Prep</span>
+            <div className="flex flex-wrap justify-center gap-8 md:gap-12 pt-8 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 mb-1">
+                        <Clock size={16} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Prep</span>
+                    </div>
                     {isEditing ? (
-                        <input type="text" value={editedRecipe.prepTime} onChange={(e) => updateField('prepTime', e.target.value)} className="w-16 text-center border-b border-gray-300 dark:bg-transparent dark:text-white" />
+                        <input type="text" value={editedRecipe.prepTime} onChange={(e) => updateField('prepTime', e.target.value)} className="w-20 text-center font-bold text-xl border-b border-gray-300 dark:bg-transparent dark:text-white focus:border-chef-500 outline-none" />
                     ) : (
-                        <span className="font-semibold text-gray-900 dark:text-white">{recipe.prepTime || '-'}</span>
+                        <span className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{recipe.prepTime || '-'}</span>
                     )}
                 </div>
-                <div className="w-px h-8 bg-gray-100 dark:bg-gray-800" />
-                <div className="flex flex-col items-center">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Cook</span>
+                
+                <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 mb-1">
+                        <Utensils size={16} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Cook</span>
+                    </div>
                     {isEditing ? (
-                        <input type="text" value={editedRecipe.cookTime} onChange={(e) => updateField('cookTime', e.target.value)} className="w-16 text-center border-b border-gray-300 dark:bg-transparent dark:text-white" />
+                        <input type="text" value={editedRecipe.cookTime} onChange={(e) => updateField('cookTime', e.target.value)} className="w-20 text-center font-bold text-xl border-b border-gray-300 dark:bg-transparent dark:text-white focus:border-chef-500 outline-none" />
                     ) : (
-                        <span className="font-semibold text-gray-900 dark:text-white">{recipe.cookTime || '-'}</span>
+                        <span className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{recipe.cookTime || '-'}</span>
                     )}
                 </div>
-                <div className="w-px h-8 bg-gray-100 dark:bg-gray-800" />
-                <div className="flex flex-col items-center">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Servings</span>
+
+                <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 mb-1">
+                        <Users size={16} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Servings</span>
+                    </div>
                     {isEditing ? (
-                        <input type="text" value={editedRecipe.servings} onChange={(e) => updateField('servings', e.target.value)} className="w-16 text-center border-b border-gray-300 dark:bg-transparent dark:text-white" />
+                        <input type="text" value={editedRecipe.servings} onChange={(e) => updateField('servings', e.target.value)} className="w-20 text-center font-bold text-xl border-b border-gray-300 dark:bg-transparent dark:text-white focus:border-chef-500 outline-none" />
                     ) : (
-                        <span className="font-semibold text-gray-900 dark:text-white">{recipe.servings || '-'}</span>
+                        <span className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{recipe.servings || '-'}</span>
                     )}
                 </div>
-                <div className="w-px h-8 bg-gray-100 dark:bg-gray-800" />
-                <div className="flex flex-col items-center">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Cal</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">{nutrition.calories || '-'}</span>
+
+                <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 mb-1">
+                        <Flame size={16} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Cal</span>
+                    </div>
+                    <span className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{nutrition.calories || '-'}</span>
                 </div>
             </div>
             
