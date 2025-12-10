@@ -139,9 +139,9 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
   ];
 
   return (
-    <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 min-h-screen shadow-2xl overflow-hidden print:shadow-none print:w-full">
+    <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 min-h-screen shadow-2xl overflow-hidden print:shadow-none print:w-full pb-24 md:pb-0">
       {/* Hero Image */}
-      <div className="relative h-96 w-full bg-gray-900 group print:h-64">
+      <div className="relative h-[45vh] md:h-96 w-full bg-gray-900 group print:h-64">
         {recipe.imageUrl && !imageError ? (
           <img 
             src={recipe.imageUrl} 
@@ -160,16 +160,16 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/60 to-transparent no-print"></div>
         <button 
           onClick={onBack}
-          className="absolute top-6 left-6 text-white hover:text-chef-200 transition-colors flex items-center gap-2 font-medium bg-black/20 backdrop-blur-md px-4 py-2 rounded-full no-print"
+          className="absolute top-4 left-4 md:top-6 md:left-6 text-white hover:text-chef-200 transition-colors flex items-center justify-center gap-2 font-medium bg-black/30 backdrop-blur-md w-10 h-10 md:w-auto md:h-auto md:px-4 md:py-2 rounded-full no-print"
         >
           <ArrowLeft size={20} />
-          Back
+          <span className="hidden md:inline">Back</span>
         </button>
       </div>
 
-      <div className="px-8 py-10 print:px-0 print:py-4">
+      <div className="px-5 py-8 md:px-8 md:py-10 -mt-12 relative z-10 bg-white dark:bg-gray-800 rounded-t-[2.5rem] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] print:px-0 print:py-4 print:mt-0 print:shadow-none">
         {/* Header */}
-        <div className="flex justify-between items-start mb-8 print:block">
+        <div className="flex justify-between items-start mb-6 md:mb-8 print:block">
           <div className="flex-1">
             <div className="flex gap-2 mb-3 flex-wrap">
                {recipeTags.map(tag => (

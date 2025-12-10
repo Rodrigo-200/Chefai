@@ -528,18 +528,18 @@ export default function App() {
       </nav>
 
       {/* Mobile Header */}
-      <div className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-              <div className="bg-chef-600 p-1.5 rounded-lg text-white">
+      <div className="md:hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-40 px-4 h-16 flex items-center justify-between transition-all duration-300">
+          <div className="flex items-center gap-2.5">
+              <div className="bg-gradient-to-br from-chef-500 to-chef-600 p-2 rounded-xl text-white shadow-lg shadow-chef-500/20">
                 <ChefHat size={20} />
               </div>
-              <span className="font-serif text-lg font-bold tracking-tight text-gray-900 dark:text-white">
+              <span className="font-serif text-xl font-bold tracking-tight text-gray-900 dark:text-white">
                 Recipe<span className="text-chef-600">Snap</span>
               </span>
           </div>
           <button
             onClick={toggleDark}
-            className="p-2 rounded-lg text-gray-500 dark:text-gray-400"
+            className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           >
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
           </button>
@@ -570,33 +570,35 @@ export default function App() {
         )}
 
         {view === 'dashboard' && (
-             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12 pb-24 md:pb-12">
+             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-12 pb-32 md:pb-12">
                 {/* Hero Header */}
-                <div className="relative overflow-hidden bg-gradient-to-br from-chef-600 via-chef-500 to-amber-500 rounded-3xl p-6 md:p-12 mb-8 md:mb-10 text-white">
+                <div className="relative overflow-hidden bg-gradient-to-br from-chef-600 via-chef-500 to-amber-500 rounded-[2rem] p-6 md:p-12 mb-6 md:mb-10 text-white shadow-xl shadow-chef-500/20">
                     <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yIDItNCAyLTRzLTItMi00LTItNCAxLTQgMSAwLTMgMi01IDItMiA0LTIgNCAyIDQgMnMwIDItMiA0LTItMi0yLTR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"></div>
                     <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-                                <BookOpen size={24} />
+                        <div className="flex items-center gap-4 mb-2 md:mb-4">
+                            <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-inner">
+                                <BookOpen size={20} className="md:w-6 md:h-6" />
                             </div>
                             <div>
-                                <h1 className="text-3xl md:text-4xl font-bold">My Cookbook</h1>
-                                <p className="text-white/80 text-sm">{recipes.length} recipe{recipes.length !== 1 ? 's' : ''} created · {savedRecipes.length} saved</p>
+                                <h1 className="text-2xl md:text-4xl font-bold tracking-tight">My Cookbook</h1>
+                                <p className="text-white/90 text-xs md:text-sm font-medium">{recipes.length} recipe{recipes.length !== 1 ? 's' : ''} · {savedRecipes.length} saved</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Search Bar */}
-                <div className="relative mb-8">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={20} />
-                    <input 
-                        type="text" 
-                        placeholder="Search your recipes..." 
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-12 pr-4 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-chef-500 focus:border-chef-500 outline-none text-base shadow-sm dark:text-white dark:placeholder-gray-400"
-                    />
+                {/* Search Bar - Sticky on Mobile */}
+                <div className="sticky top-16 z-30 -mx-4 px-4 py-2 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-sm md:static md:bg-transparent md:p-0 md:mx-0 md:mb-8 transition-all">
+                    <div className="relative group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-chef-500 transition-colors" size={20} />
+                        <input 
+                            type="text" 
+                            placeholder="Search recipes, ingredients..." 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-12 pr-4 py-3.5 md:py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-chef-500 focus:border-chef-500 outline-none text-base shadow-sm dark:text-white dark:placeholder-gray-400 transition-all"
+                        />
+                    </div>
                 </div>
 
                 {/* Saved Recipes Section */}
@@ -675,30 +677,27 @@ export default function App() {
 
       {/* Bottom Navigation for Mobile */}
       {user && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+        <div className="md:hidden fixed bottom-6 left-6 right-6 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl shadow-2xl z-50 pb-safe">
           <div className="flex items-center justify-around p-3">
             <button 
               onClick={() => setView('dashboard')}
-              className={`flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${view === 'dashboard' ? 'text-chef-600 dark:text-chef-400 bg-chef-50 dark:bg-chef-900/50 scale-105' : 'text-gray-400 dark:text-gray-500'}`}
+              className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 ${view === 'dashboard' ? 'text-chef-600 dark:text-chef-400 bg-chef-50 dark:bg-chef-900/50' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
             >
-              <Home size={24} strokeWidth={view === 'dashboard' ? 2.5 : 2} />
-              <span className="text-[10px] font-medium mt-1">Home</span>
+              <Home size={22} strokeWidth={view === 'dashboard' ? 2.5 : 2} />
             </button>
             
             <button 
               onClick={() => setView('create')}
-              className={`flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${view === 'create' ? 'text-chef-600 dark:text-chef-400 bg-chef-50 dark:bg-chef-900/50 scale-105' : 'text-gray-400 dark:text-gray-500'}`}
+              className={`flex flex-col items-center justify-center w-14 h-14 -mt-8 rounded-full shadow-lg transition-all duration-200 ${view === 'create' ? 'bg-chef-600 text-white scale-110 ring-4 ring-white dark:ring-gray-900' : 'bg-chef-600 text-white ring-4 ring-white dark:ring-gray-900'}`}
             >
-              <PlusCircle size={24} strokeWidth={view === 'create' ? 2.5 : 2} />
-              <span className="text-[10px] font-medium mt-1">Create</span>
+              <PlusCircle size={28} strokeWidth={2.5} />
             </button>
 
             <button 
               onClick={logout}
-              className="flex flex-col items-center p-2 rounded-xl text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"
+              className="flex flex-col items-center justify-center w-12 h-12 rounded-xl text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
             >
-              <LogOut size={24} />
-              <span className="text-[10px] font-medium mt-1">Logout</span>
+              <LogOut size={22} />
             </button>
           </div>
         </div>

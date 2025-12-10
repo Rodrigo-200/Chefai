@@ -448,13 +448,13 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated, ini
           {/* Main Input (URL or Text) */}
           <div className="mb-4">
             <div className="relative">
-              <LinkIcon size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+              <LinkIcon size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
               <input
                 type="text"
                 value={mainInput}
                 onChange={(e) => setMainInput(e.target.value)}
                 placeholder="Paste URL or recipe text..."
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-chef-500 focus:border-chef-500 outline-none text-sm bg-gray-50 dark:bg-gray-700 dark:text-white hover:bg-white dark:hover:bg-gray-600 transition-colors"
+                className="w-full pl-12 pr-4 py-4 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-chef-500 focus:border-chef-500 outline-none text-base bg-gray-50 dark:bg-gray-700 dark:text-white hover:bg-white dark:hover:bg-gray-600 transition-colors shadow-sm"
               />
             </div>
           </div>
@@ -512,10 +512,10 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated, ini
           <button
             onClick={handleSubmit}
             disabled={submitDisabled}
-            className={`w-full py-3 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all
+            className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all
               ${submitDisabled
                 ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                : 'bg-gradient-to-r from-chef-600 to-chef-500 text-white hover:from-chef-700 hover:to-chef-600 shadow-xl shadow-chef-500/25 hover:shadow-chef-500/40 hover:-translate-y-0.5'
+                : 'bg-gradient-to-r from-chef-600 to-chef-500 text-white hover:from-chef-700 hover:to-chef-600 shadow-xl shadow-chef-500/25 hover:shadow-chef-500/40 hover:-translate-y-0.5 active:scale-[0.98]'
               }`}
           >
             {isLoading ? (
