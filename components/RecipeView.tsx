@@ -14,47 +14,38 @@ interface RecipeViewProps {
   isLoggedIn: boolean;
 }
 
-const getIngredientEmoji = (name: string): string => {
-  const lowerName = name.toLowerCase();
-  if (lowerName.includes('chicken') || lowerName.includes('poultry')) return '🍗';
-  if (lowerName.includes('beef') || lowerName.includes('steak') || lowerName.includes('meat')) return '🥩';
-  if (lowerName.includes('pork') || lowerName.includes('bacon') || lowerName.includes('ham')) return '🥓';
-  if (lowerName.includes('fish') || lowerName.includes('salmon') || lowerName.includes('tuna')) return '🐟';
-  if (lowerName.includes('shrimp') || lowerName.includes('crab') || lowerName.includes('lobster')) return '🦐';
-  if (lowerName.includes('egg')) return '🥚';
-  if (lowerName.includes('milk') || lowerName.includes('cream') || lowerName.includes('yogurt')) return '🥛';
-  if (lowerName.includes('cheese') || lowerName.includes('mozzarella') || lowerName.includes('cheddar')) return '🧀';
-  if (lowerName.includes('butter') || lowerName.includes('margarine')) return '🧈';
-  if (lowerName.includes('oil') || lowerName.includes('olive')) return '🫗';
-  if (lowerName.includes('salt') || lowerName.includes('sodium')) return '🧂';
-  if (lowerName.includes('sugar') || lowerName.includes('honey') || lowerName.includes('syrup')) return '🍯';
-  if (lowerName.includes('flour') || lowerName.includes('wheat') || lowerName.includes('dough')) return '🌾';
-  if (lowerName.includes('rice') || lowerName.includes('grain')) return '🍚';
-  if (lowerName.includes('pasta') || lowerName.includes('noodle') || lowerName.includes('spaghetti')) return '🍝';
-  if (lowerName.includes('bread') || lowerName.includes('toast') || lowerName.includes('bun')) return '🍞';
-  if (lowerName.includes('onion') || lowerName.includes('shallot')) return '🧅';
-  if (lowerName.includes('garlic')) return '🧄';
-  if (lowerName.includes('tomato')) return '🍅';
-  if (lowerName.includes('potato')) return '🥔';
-  if (lowerName.includes('carrot')) return '🥕';
-  if (lowerName.includes('corn')) return '🌽';
-  if (lowerName.includes('pepper') || lowerName.includes('chili') || lowerName.includes('paprika')) return '🌶️';
-  if (lowerName.includes('lemon') || lowerName.includes('lime') || lowerName.includes('citrus')) return '🍋';
-  if (lowerName.includes('apple')) return '🍎';
-  if (lowerName.includes('banana')) return '🍌';
-  if (lowerName.includes('berry') || lowerName.includes('strawberry')) return '🍓';
-  if (lowerName.includes('water') || lowerName.includes('broth') || lowerName.includes('stock')) return '💧';
-  if (lowerName.includes('wine')) return '🍷';
-  if (lowerName.includes('beer')) return '🍺';
-  if (lowerName.includes('coffee')) return '☕';
-  if (lowerName.includes('tea')) return '🍵';
-  if (lowerName.includes('chocolate') || lowerName.includes('cocoa')) return '🍫';
-  if (lowerName.includes('herb') || lowerName.includes('basil') || lowerName.includes('parsley') || lowerName.includes('cilantro') || lowerName.includes('thyme')) return '🌿';
-  if (lowerName.includes('mushroom')) return '🍄';
-  if (lowerName.includes('nut') || lowerName.includes('almond') || lowerName.includes('peanut')) return '🥜';
-  if (lowerName.includes('avocado')) return '🥑';
-  if (lowerName.includes('salad') || lowerName.includes('lettuce') || lowerName.includes('spinach')) return '🥬';
-  return '🥘';
+const IngredientRow: React.FC<{ ingredient: { name: string; amount: string; unit: string; notes?: string } }> = ({ ingredient }) => {
+  const [imageError, setImageError] = useState(false);
+  // TheMealDB uses capitalized ingredient names for images usually
+  const formattedName = ingredient.name.charAt(0).toUpperCase() + ingredient.name.slice(1);
+  const imageUrl = `https://www.themealdb.com/images/ingredients/${encodeURIComponent(formattedName)}.png`;
+
+  return (
+    <div className="flex items-center gap-4 p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group">
+        <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-700 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform overflow-hidden p-2">
+            {!imageError ? (
+                <img 
+                    src={imageUrl} 
+                    alt={ingredient.name}
+                    className="w-full h-full object-contain"
+                    onError={() => setImageError(true)}
+                    loading="lazy"
+                />
+            ) : (
+                <Utensils size={20} className="text-gray-300 dark:text-gray-500" />
+            )}
+        </div>
+        <div className="flex-1 min-w-0">
+            <p className="font-bold text-gray-900 dark:text-white truncate">
+                {ingredient.amount} <span className="text-chef-600 dark:text-chef-400">{ingredient.unit}</span>
+            </p>
+            <p className="text-gray-600 dark:text-gray-300 text-sm truncate capitalize">
+                {ingredient.name}
+            </p>
+            {ingredient.notes && <p className="text-xs text-gray-400 mt-0.5 italic truncate">{ingredient.notes}</p>}
+        </div>
+    </div>
+  );
 };
 
 export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, onUnsave, onDelete, onUpdate, isSaved, isLoggedIn }) => {
@@ -371,20 +362,7 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {recipe.ingredients.map((ingredient, idx) => (
-                            <div key={idx} className="flex items-center gap-4 p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group">
-                                <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-700 flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition-transform">
-                                    {getIngredientEmoji(ingredient.name)}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-bold text-gray-900 dark:text-white truncate">
-                                        {ingredient.amount} <span className="text-chef-600 dark:text-chef-400">{ingredient.unit}</span>
-                                    </p>
-                                    <p className="text-gray-600 dark:text-gray-300 text-sm truncate capitalize">
-                                        {ingredient.name}
-                                    </p>
-                                    {ingredient.notes && <p className="text-xs text-gray-400 mt-0.5 italic truncate">{ingredient.notes}</p>}
-                                </div>
-                            </div>
+                            <IngredientRow key={idx} ingredient={ingredient} />
                         ))}
                     </div>
                 )}
