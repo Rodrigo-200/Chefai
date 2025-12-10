@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Recipe } from '../types';
 import { ArrowLeft, Clock, Printer, FileText, FileDown, Globe, ChevronDown, Copy, Download, Heart, Trash2, Edit3, X, Check, AlertCircle, Plus, ChefHat, Users, Flame, Utensils, ExternalLink } from 'lucide-react';
 import { downloadMarkdown, downloadPlainText, exportRecipeToPDF } from '../services/exportService';
-import { getIngredientImageCandidates } from '../services/ingredientUtils';
+// Ingredient images removed per request; using a static icon instead
 
 interface RecipeViewProps {
     recipe: Recipe;
@@ -16,28 +16,10 @@ interface RecipeViewProps {
 }
 
 const IngredientRow: React.FC<{ ingredient: { name: string; amount: string; unit: string; notes?: string } }> = ({ ingredient }) => {
-    const sources = getIngredientImageCandidates(ingredient.name);
-    const [activeIdx, setActiveIdx] = useState(0);
-    const currentSrc = sources[activeIdx];
-
-    const handleImageError = () => {
-        setActiveIdx((idx) => (idx + 1 < sources.length ? idx + 1 : idx));
-    };
-
     return (
         <div className="flex items-center gap-4 p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group">
-                <div className="h-14 w-14 rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden shadow-sm flex items-center justify-center">
-                    {currentSrc ? (
-                        <img
-                            src={currentSrc}
-                            alt={ingredient.name}
-                            className="h-full w-full object-cover"
-                            onError={handleImageError}
-                            loading="lazy"
-                        />
-                    ) : (
-                        <ChefHat size={20} className="text-gray-300 dark:text-gray-600" />
-                    )}
+                <div className="h-14 w-14 rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm flex items-center justify-center">
+                    <ChefHat size={20} className="text-gray-400 dark:text-gray-600" />
                 </div>
                 <div className="flex-1 min-w-0">
                         <p className="font-bold text-gray-900 dark:text-white truncate">
