@@ -35,6 +35,15 @@ export default defineConfig(({ mode }) => {
         id: 'chefai-recipe-extractor',
         scope: '/',
         start_url: '/?source=pwa',
+        share_target: {
+          action: '/',
+          method: 'GET',
+          params: {
+            title: 'title',
+            text: 'text',
+            url: 'url'
+          }
+        },
         categories: ['food', 'lifestyle', 'productivity'],
         icons: [
           {
@@ -61,23 +70,7 @@ export default defineConfig(({ mode }) => {
             type: 'image/png',
             purpose: 'maskable'
           }
-        ],
-        share_target: {
-          action: "/share-target",
-          method: "POST",
-          enctype: "multipart/form-data",
-          params: {
-            title: "title",
-            text: "text",
-            url: "url",
-            files: [
-              {
-                name: "files",
-                accept: ["image/*", ".png", ".jpg", ".jpeg", ".gif", ".webp"]
-              }
-            ]
-          }
-        }
+        ]
         }
       })
     ],
