@@ -14,11 +14,11 @@ interface RecipeViewProps {
   isLoggedIn: boolean;
 }
 
+import { getIngredientImage } from '../services/ingredientUtils';
+
 const IngredientRow: React.FC<{ ingredient: { name: string; amount: string; unit: string; notes?: string } }> = ({ ingredient }) => {
   const [imageError, setImageError] = useState(false);
-  // TheMealDB uses capitalized ingredient names for images usually
-  const formattedName = ingredient.name.charAt(0).toUpperCase() + ingredient.name.slice(1);
-  const imageUrl = `https://www.themealdb.com/images/ingredients/${encodeURIComponent(formattedName)}.png`;
+  const imageUrl = getIngredientImage(ingredient.name);
 
   return (
     <div className="flex items-center gap-4 p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group">
