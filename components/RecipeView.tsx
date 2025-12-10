@@ -14,27 +14,10 @@ interface RecipeViewProps {
   isLoggedIn: boolean;
 }
 
-import { getIngredientImage } from '../services/ingredientUtils';
-
 const IngredientRow: React.FC<{ ingredient: { name: string; amount: string; unit: string; notes?: string } }> = ({ ingredient }) => {
-  const [imageError, setImageError] = useState(false);
-  const imageUrl = getIngredientImage(ingredient.name);
-
   return (
     <div className="flex items-center gap-4 p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group">
-        <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-700 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform overflow-hidden p-2">
-            {!imageError ? (
-                <img 
-                    src={imageUrl} 
-                    alt={ingredient.name}
-                    className="w-full h-full object-contain"
-                    onError={() => setImageError(true)}
-                    loading="lazy"
-                />
-            ) : (
-                <Utensils size={20} className="text-gray-300 dark:text-gray-500" />
-            )}
-        </div>
+        <div className="w-2 h-2 rounded-full bg-chef-500/50 group-hover:bg-chef-500 transition-colors ml-2" />
         <div className="flex-1 min-w-0">
             <p className="font-bold text-gray-900 dark:text-white truncate">
                 {ingredient.amount} <span className="text-chef-600 dark:text-chef-400">{ingredient.unit}</span>
@@ -173,7 +156,7 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
   ];
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-y-auto bg-white dark:bg-gray-900 pb-20 animate-in slide-in-from-bottom-4 duration-300">
+    <div className="bg-white dark:bg-gray-900 min-h-screen pb-20 animate-in slide-in-from-bottom-4 duration-300">
       {/* Immersive Hero */}
       <div className="relative h-[50vh] md:h-[60vh] w-full bg-gray-100 dark:bg-gray-800">
         {recipe.imageUrl && !imageError ? (
@@ -192,7 +175,7 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent pointer-events-none" />
 
         {/* Navigation Overlay */}
-        <div className="fixed top-0 left-0 right-0 p-4 md:p-6 flex justify-between items-start z-50 pointer-events-none">
+        <div className="absolute top-0 left-0 right-0 p-4 md:p-6 flex justify-between items-start z-10 pointer-events-none">
             <button 
               onClick={onBack}
               className="pointer-events-auto h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 transition-colors shadow-sm"
