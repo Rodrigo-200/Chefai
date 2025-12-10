@@ -188,48 +188,69 @@ const INGREDIENT_MAP: Record<string, string> = {
   'water': 'water',
 };
 
-export const getIngredientImage = (name: string): string => {
-  if (!name) return '';
+const ADJECTIVES = [
+  'fresh', 'raw', 'cooked', 'dried', 'ground', 'whole', 'chopped', 'sliced', 'diced', 'minced', 'grated', 'crushed',
+  'large', 'medium', 'small', 'organic', 'sweet', 'sour', 'hot', 'spicy', 'boneless', 'skinless', 'fat-free', 'low-fat',
+  'frozen', 'canned', 'prepared', 'mixed'
+];
 
-  // 1. Clean up the name
-  let cleanName = name.toLowerCase().trim();
-  
-  // Common adjectives to remove for better matching
-  const ADJECTIVES = [
-    'fresh', 'raw', 'cooked', 'dried', 'ground', 'whole', 'chopped', 'sliced', 'diced', 'minced', 'grated', 'crushed',
-    'large', 'medium', 'small', 'organic', 'sweet', 'sour', 'hot', 'spicy', 'boneless', 'skinless', 'fat-free', 'low-fat',
-    'frozen', 'canned', 'prepared', 'mixed'
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
+
+const titleCase = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/-/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map(word => word[0].toUpperCase() + word.slice(1))
+    .join(' ');
+
+const sanitizeName = (name: string) => {
+  const lowered = name.toLowerCase().trim();
+  let stripped = lowered;
+  ADJECTIVES.forEach(adj => {
+    stripped = stripped.replace(new RegExp(`\\b${adj}\\b`, 'gi'), ' ');
+  });
+  return stripped.replace(/\s+/g, ' ').trim();
+};
+
+export const getIngredientImageCandidates = (name: string): string[] => {
+  if (!name) return [];
+
+  const cleaned = sanitizeName(name);
+  const mapped = INGREDIENT_MAP[cleaned];
+
+  const mappedMatch = mapped
+    ? mapped
+    : Object.entries(INGREDIENT_MAP).find(([key]) => new RegExp(`\\b${key}\\b`, 'i').test(cleaned))?.[1];
+
+  const baseName = mappedMatch || cleaned || name.trim();
+  const slug = slugify(baseName);
+  const title = titleCase(baseName);
+
+  if (!slug) return [];
+
+  const candidates = [
+    `https://img.spoonacular.com/ingredients_500x500/${slug}.jpg`,
+    `https://spoonacular.com/cdn/ingredients_250x250/${slug}.jpg`,
+    `https://img.spoonacular.com/ingredients_100x100/${slug}.jpg`,
+    `https://www.themealdb.com/images/ingredients/${title}.png`,
+    `https://www.themealdb.com/images/ingredients/${title}-Small.png`,
   ];
 
-  // 2. Check direct mapping first
-  if (INGREDIENT_MAP[cleanName]) {
-    const mappedSlug = INGREDIENT_MAP[cleanName].toLowerCase().replace(/\s+/g, '-');
-    return `https://spoonacular.com/cdn/ingredients_250x250/${mappedSlug}.jpg`;
-  }
+  const unique = Array.from(new Set(candidates.filter(Boolean)));
+  return unique;
+};
 
-  // 3. Try to find a mapped word inside the string
-  for (const [key, value] of Object.entries(INGREDIENT_MAP)) {
-    // Only match if it's a whole word
-    const regex = new RegExp(`\\b${key}\\b`, 'i');
-    if (regex.test(cleanName)) {
-       const mappedSlug = value.toLowerCase().replace(/\s+/g, '-');
-       return `https://spoonacular.com/cdn/ingredients_250x250/${mappedSlug}.jpg`;
-    }
-  }
-
-  // 4. Clean adjectives and try again
-  let strippedName = cleanName;
-  ADJECTIVES.forEach(adj => {
-      strippedName = strippedName.replace(new RegExp(`\\b${adj}\\b`, 'gi'), '').trim();
-  });
-  strippedName = strippedName.replace(/\s+/g, ' ').trim();
-
-  if (strippedName && strippedName !== cleanName) {
-      const slug = strippedName.replace(/\s+/g, '-');
-      return `https://spoonacular.com/cdn/ingredients_250x250/${slug}.jpg`;
-  }
-
-  // 5. Fallback to original name (slugified)
-  const slug = cleanName.replace(/\s+/g, '-');
-  return `https://spoonacular.com/cdn/ingredients_250x250/${slug}.jpg`;
+export const getIngredientImage = (name: string): string => {
+  const [first] = getIngredientImageCandidates(name);
+  return first || '';
 };
