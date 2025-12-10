@@ -14,6 +14,49 @@ interface RecipeViewProps {
   isLoggedIn: boolean;
 }
 
+const getIngredientEmoji = (name: string): string => {
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes('chicken') || lowerName.includes('poultry')) return '🍗';
+  if (lowerName.includes('beef') || lowerName.includes('steak') || lowerName.includes('meat')) return '🥩';
+  if (lowerName.includes('pork') || lowerName.includes('bacon') || lowerName.includes('ham')) return '🥓';
+  if (lowerName.includes('fish') || lowerName.includes('salmon') || lowerName.includes('tuna')) return '🐟';
+  if (lowerName.includes('shrimp') || lowerName.includes('crab') || lowerName.includes('lobster')) return '🦐';
+  if (lowerName.includes('egg')) return '🥚';
+  if (lowerName.includes('milk') || lowerName.includes('cream') || lowerName.includes('yogurt')) return '🥛';
+  if (lowerName.includes('cheese') || lowerName.includes('mozzarella') || lowerName.includes('cheddar')) return '🧀';
+  if (lowerName.includes('butter') || lowerName.includes('margarine')) return '🧈';
+  if (lowerName.includes('oil') || lowerName.includes('olive')) return '🫗';
+  if (lowerName.includes('salt') || lowerName.includes('sodium')) return '🧂';
+  if (lowerName.includes('sugar') || lowerName.includes('honey') || lowerName.includes('syrup')) return '🍯';
+  if (lowerName.includes('flour') || lowerName.includes('wheat') || lowerName.includes('dough')) return '🌾';
+  if (lowerName.includes('rice') || lowerName.includes('grain')) return '🍚';
+  if (lowerName.includes('pasta') || lowerName.includes('noodle') || lowerName.includes('spaghetti')) return '🍝';
+  if (lowerName.includes('bread') || lowerName.includes('toast') || lowerName.includes('bun')) return '🍞';
+  if (lowerName.includes('onion') || lowerName.includes('shallot')) return '🧅';
+  if (lowerName.includes('garlic')) return '🧄';
+  if (lowerName.includes('tomato')) return '🍅';
+  if (lowerName.includes('potato')) return '🥔';
+  if (lowerName.includes('carrot')) return '🥕';
+  if (lowerName.includes('corn')) return '🌽';
+  if (lowerName.includes('pepper') || lowerName.includes('chili') || lowerName.includes('paprika')) return '🌶️';
+  if (lowerName.includes('lemon') || lowerName.includes('lime') || lowerName.includes('citrus')) return '🍋';
+  if (lowerName.includes('apple')) return '🍎';
+  if (lowerName.includes('banana')) return '🍌';
+  if (lowerName.includes('berry') || lowerName.includes('strawberry')) return '🍓';
+  if (lowerName.includes('water') || lowerName.includes('broth') || lowerName.includes('stock')) return '💧';
+  if (lowerName.includes('wine')) return '🍷';
+  if (lowerName.includes('beer')) return '🍺';
+  if (lowerName.includes('coffee')) return '☕';
+  if (lowerName.includes('tea')) return '🍵';
+  if (lowerName.includes('chocolate') || lowerName.includes('cocoa')) return '🍫';
+  if (lowerName.includes('herb') || lowerName.includes('basil') || lowerName.includes('parsley') || lowerName.includes('cilantro') || lowerName.includes('thyme')) return '🌿';
+  if (lowerName.includes('mushroom')) return '🍄';
+  if (lowerName.includes('nut') || lowerName.includes('almond') || lowerName.includes('peanut')) return '🥜';
+  if (lowerName.includes('avocado')) return '🥑';
+  if (lowerName.includes('salad') || lowerName.includes('lettuce') || lowerName.includes('spinach')) return '🥬';
+  return '🥘';
+};
+
 export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, onUnsave, onDelete, onUpdate, isSaved, isLoggedIn }) => {
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -326,14 +369,20 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                         <button onClick={handleAddIngredient} className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 hover:border-chef-500 hover:text-chef-500">Add Ingredient</button>
                     </div>
                 ) : (
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {recipe.ingredients.map((ingredient, idx) => (
-                            <div key={idx} className="flex items-start gap-3 pb-4 border-b border-gray-50 dark:border-gray-800 last:border-0">
-                                <div className="w-1.5 h-1.5 rounded-full bg-chef-500 mt-2.5 flex-shrink-0" />
-                                <div className="flex-1 text-base">
-                                    <span className="font-bold text-gray-900 dark:text-white">{ingredient.amount} {ingredient.unit}</span>
-                                    <span className="text-gray-600 dark:text-gray-300"> {ingredient.name}</span>
-                                    {ingredient.notes && <p className="text-sm text-gray-400 mt-0.5 italic">{ingredient.notes}</p>}
+                            <div key={idx} className="flex items-center gap-4 p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group">
+                                <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-700 flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition-transform">
+                                    {getIngredientEmoji(ingredient.name)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-gray-900 dark:text-white truncate">
+                                        {ingredient.amount} <span className="text-chef-600 dark:text-chef-400">{ingredient.unit}</span>
+                                    </p>
+                                    <p className="text-gray-600 dark:text-gray-300 text-sm truncate capitalize">
+                                        {ingredient.name}
+                                    </p>
+                                    {ingredient.notes && <p className="text-xs text-gray-400 mt-0.5 italic truncate">{ingredient.notes}</p>}
                                 </div>
                             </div>
                         ))}
@@ -343,7 +392,10 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
 
             {/* Instructions */}
             <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Instructions</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-8 flex items-center gap-2">
+                    Instructions
+                    <span className="text-sm font-normal text-gray-400 ml-auto">{recipe.instructions.length} steps</span>
+                </h3>
                 
                 {isEditing ? (
                     <div className="space-y-6">
@@ -363,21 +415,26 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                         <button onClick={handleAddInstruction} className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 hover:border-chef-500 hover:text-chef-500">Add Step</button>
                     </div>
                 ) : (
-                    <div className="space-y-10">
+                    <div className="space-y-0 relative before:absolute before:left-[19px] before:top-4 before:bottom-4 before:w-0.5 before:bg-gray-100 dark:before:bg-gray-800">
                         {recipe.instructions.map((step, idx) => (
-                            <div key={idx} className="relative pl-8">
-                                <span className="absolute left-0 top-0 text-4xl font-bold text-gray-100 dark:text-gray-800 -z-10 select-none">
-                                    {step.stepNumber}
-                                </span>
-                                <p className="text-lg text-gray-800 dark:text-gray-200 leading-relaxed">
-                                    {step.description}
-                                </p>
-                                {step.timerSeconds && step.timerSeconds > 0 && (
-                                    <div className="mt-3 inline-flex items-center gap-2 text-chef-600 dark:text-chef-400 font-medium text-sm bg-chef-50 dark:bg-chef-900/20 px-3 py-1.5 rounded-full">
-                                        <Clock size={14} />
-                                        <span>{formatTimerSeconds(step.timerSeconds)}</span>
-                                    </div>
-                                )}
+                            <div key={idx} className="relative pl-12 pb-10 last:pb-0 group">
+                                {/* Step Number Bubble */}
+                                <div className="absolute left-0 top-0 w-10 h-10 rounded-full bg-white dark:bg-gray-900 border-4 border-gray-100 dark:border-gray-800 flex items-center justify-center z-10 group-hover:border-chef-100 dark:group-hover:border-chef-900 transition-colors">
+                                    <span className="font-bold text-sm text-gray-900 dark:text-white">{step.stepNumber}</span>
+                                </div>
+                                
+                                {/* Content */}
+                                <div className="pt-1">
+                                    <p className="text-lg text-gray-800 dark:text-gray-200 leading-relaxed">
+                                        {step.description}
+                                    </p>
+                                    {step.timerSeconds && step.timerSeconds > 0 && (
+                                        <div className="mt-3 inline-flex items-center gap-2 text-chef-600 dark:text-chef-400 font-bold text-xs uppercase tracking-wider bg-chef-50 dark:bg-chef-900/20 px-3 py-1.5 rounded-lg">
+                                            <Clock size={14} />
+                                            <span>{formatTimerSeconds(step.timerSeconds)}</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>
