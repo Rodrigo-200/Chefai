@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Recipe } from '../types';
 import { ArrowLeft, Clock, Printer, FileText, FileDown, Globe, ChevronDown, Copy, Download, Heart, Trash2, Edit3, X, Check, AlertCircle, Plus, ChefHat, Users, Flame, Utensils, ExternalLink } from 'lucide-react';
 import { downloadMarkdown, downloadPlainText, exportRecipeToPDF } from '../services/exportService';
 import { getIngredientImageCandidates } from '../services/ingredientUtils';
-import { fetchIngredientInfoFromOFF, OffIngredientInfo } from '../services/openFoodFactsService';
 
 interface RecipeViewProps {
     recipe: Recipe;
@@ -16,12 +15,8 @@ interface RecipeViewProps {
     isLoggedIn: boolean;
 }
 
-const IngredientRow: React.FC<{ ingredient: { name: string; amount: string; unit: string; notes?: string }; offInfo?: OffIngredientInfo; per100gCalories?: number | null }> = ({ ingredient, offInfo, per100gCalories }) => {
-    const sources = useMemo(() => {
-        const base = getIngredientImageCandidates(ingredient.name);
-        return offInfo?.image_url ? [offInfo.image_url, ...base] : base;
-    }, [ingredient.name, offInfo]);
-
+const IngredientRow: React.FC<{ ingredient: { name: string; amount: string; unit: string; notes?: string } }> = ({ ingredient }) => {
+    const sources = getIngredientImageCandidates(ingredient.name);
     const [activeIdx, setActiveIdx] = useState(0);
     const currentSrc = sources[activeIdx];
 
@@ -45,14 +40,9 @@ const IngredientRow: React.FC<{ ingredient: { name: string; amount: string; unit
                     )}
                 </div>
                 <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                            <p className="font-bold text-gray-900 dark:text-white truncate">
-                                    {ingredient.amount} <span className="text-chef-600 dark:text-chef-400">{ingredient.unit}</span>
-                            </p>
-                            {per100gCalories ? (
-                                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold whitespace-nowrap">{Math.round(per100gCalories)} kcal/100g</span>
-                            ) : null}
-                        </div>
+                        <p className="font-bold text-gray-900 dark:text-white truncate">
+                                {ingredient.amount} <span className="text-chef-600 dark:text-chef-400">{ingredient.unit}</span>
+                        </p>
                         <p className="text-gray-600 dark:text-gray-300 text-sm truncate capitalize">
                                 {ingredient.name}
                         </p>
@@ -68,8 +58,6 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
   const [isEditing, setIsEditing] = useState(false);
   const [editedRecipe, setEditedRecipe] = useState<Recipe>(recipe);
   const [imageError, setImageError] = useState(false);
-    const [offMap, setOffMap] = useState<Record<string, OffIngredientInfo>>({});
-    const [derivedCalories, setDerivedCalories] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const recipeTags = Array.isArray(recipe.tags) ? recipe.tags : [];
   const nutrition = recipe.nutrition || {};
@@ -93,153 +81,11 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
         return trimmed;
     };
 
-    const normalizeName = (value: string) => value.toLowerCase().trim();
-
-    const parseAmountNumber = (amount: string): number | null => {
-        if (!amount) return null;
-        const match = amount.match(/[-+]?[0-9]*\.?[0-9]+/);
-        if (!match) return null;
-        const parsed = parseFloat(match[0]);
-        return Number.isFinite(parsed) ? parsed : null;
-    };
-
-    const toGrams = (amount: string, unit: string): number | null => {
-        const value = parseAmountNumber(amount);
-        if (value === null) return null;
-        const u = unit.toLowerCase().trim();
-        switch (u) {
-            case 'g':
-            case 'gram':
-            case 'grams':
-                return value;
-            case 'kg':
-            case 'kilogram':
-            case 'kilograms':
-                return value * 1000;
-            case 'mg':
-            case 'milligram':
-            case 'milligrams':
-                return value / 1000;
-            case 'lb':
-            case 'lbs':
-            case 'pound':
-            case 'pounds':
-                return value * 453.592;
-            case 'oz':
-            case 'ounce':
-            case 'ounces':
-                return value * 28.3495;
-            case 'ml':
-            case 'milliliter':
-            case 'milliliters':
-                return value; // approximate water density
-            case 'l':
-            case 'liter':
-            case 'liters':
-                return value * 1000;
-            case 'cup':
-            case 'cups':
-                return value * 240;
-            case 'tbsp':
-            case 'tablespoon':
-            case 'tablespoons':
-                return value * 15;
-            case 'tsp':
-            case 'teaspoon':
-            case 'teaspoons':
-                return value * 5;
-            case 'slice':
-            case 'slices':
-                return value * 30;
-            case 'pc':
-            case 'pcs':
-            case 'piece':
-            case 'pieces':
-                return value * 50;
-            case 'pinch':
-            case 'pinches':
-                return value * 0.5;
-            default:
-                return null;
-        }
-    };
-
-    const parseCaloriesValue = (value?: string) => {
-        if (!value) return null;
-        const numeric = parseFloat(value.replace(/[^0-9.]/g, ''));
-        return Number.isFinite(numeric) ? numeric : null;
-    };
-
-    const calorieDisplay = derivedCalories
-        ?? parseCaloriesValue(nutrition.totalCalories)
-        ?? parseCaloriesValue(nutrition.calories);
-
   // Sync editedRecipe when recipe prop changes
   useEffect(() => {
     setEditedRecipe(recipe);
     setImageError(false);
   }, [recipe]);
-
-    // Fetch Open Food Facts info per ingredient and derive total calories
-    useEffect(() => {
-        let cancelled = false;
-
-        const fetchOff = async () => {
-            const uniqueNames: string[] = Array.from(
-                new Set(
-                    (recipe.ingredients || [])
-                        .map(i => normalizeName(i.name))
-                        .filter((v): v is string => Boolean(v))
-                )
-            );
-            if (!uniqueNames.length) {
-                if (!cancelled) {
-                    setOffMap({});
-                    setDerivedCalories(null);
-                }
-                return;
-            }
-
-            const results = await Promise.all(
-                uniqueNames.map(async (name): Promise<[string, OffIngredientInfo | null]> => {
-                    try {
-                        const info = await fetchIngredientInfoFromOFF(name);
-                        return [name, info];
-                    } catch (err) {
-                        console.warn('OFF fetch failed for', name, err);
-                        return [name, null];
-                    }
-                })
-            );
-
-            if (cancelled) return;
-
-            const map: Record<string, OffIngredientInfo> = {};
-            results.forEach(([key, info]) => {
-                if (info) map[key] = info;
-            });
-            setOffMap(map);
-
-            let total = 0;
-            let hasAny = false;
-            recipe.ingredients.forEach(ing => {
-                const key = normalizeName(ing.name);
-                const info = map[key];
-                if (!info || info.calories_per_100g == null) return;
-                const grams = toGrams(ing.amount, ing.unit);
-                if (grams == null) return;
-                hasAny = true;
-                total += (grams / 100) * info.calories_per_100g;
-            });
-            setDerivedCalories(hasAny ? Math.round(total) : null);
-        };
-
-        fetchOff();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [recipe.ingredients]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -509,12 +355,7 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                         <Flame size={16} />
                         <span className="text-[10px] font-bold uppercase tracking-widest">Cal</span>
                     </div>
-                                        <div className="flex flex-col items-center">
-                                            <span className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{calorieDisplay != null ? `${Math.round(calorieDisplay)} kcal` : '-'}</span>
-                                            {derivedCalories != null && (
-                                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">OFF estimate</span>
-                                            )}
-                                        </div>
+                    <span className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{nutrition.calories || '-'}</span>
                 </div>
             </div>
             
@@ -555,17 +396,9 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                {recipe.ingredients.map((ingredient, idx) => {
-                                                        const offInfo = offMap[normalizeName(ingredient.name)];
-                                                        return (
-                                                            <IngredientRow
-                                                                key={idx}
-                                                                ingredient={ingredient}
-                                                                offInfo={offInfo}
-                                                                per100gCalories={offInfo?.calories_per_100g ?? null}
-                                                            />
-                                                        );
-                                                })}
+                        {recipe.ingredients.map((ingredient, idx) => (
+                            <IngredientRow key={idx} ingredient={ingredient} />
+                        ))}
                     </div>
                 )}
             </div>
