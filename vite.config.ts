@@ -23,6 +23,13 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
+        devOptions: {
+          enabled: true,
+          type: 'module',
+        },
+        strategies: 'injectManifest',
+        srcDir: 'src',
+        filename: 'sw.ts',
         includeAssets: ['icon.svg'],
         manifest: {
         name: 'ChefAI - Intelligent Recipe Extractor',
@@ -36,8 +43,9 @@ export default defineConfig(({ mode }) => {
         scope: '/',
         start_url: '/?source=pwa',
         share_target: {
-          action: '/',
-          method: 'GET',
+          action: '/share-target',
+          method: 'POST',
+          enctype: 'multipart/form-data',
           params: {
             title: 'title',
             text: 'text',
