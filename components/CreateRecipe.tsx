@@ -57,6 +57,25 @@ const isLikelyUrl = (value: string) => {
   return /^https?:\/\//i.test(trimmed) || /^(www\.)?[a-z0-9-]+\.[a-z]{2,}/i.test(trimmed);
 };
 
+const normalizeDuration = (value?: string | null) => {
+  if (!value) return '';
+  const trimmed = value.trim();
+  const iso = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/i.exec(trimmed);
+  if (iso) {
+    const hours = iso[1] ? parseInt(iso[1], 10) : 0;
+    const mins = iso[2] ? parseInt(iso[2], 10) : 0;
+    const secs = iso[3] ? parseInt(iso[3], 10) : 0;
+    const parts = [] as string[];
+    if (hours) parts.push(`${hours} hr${hours === 1 ? '' : 's'}`);
+    if (mins) parts.push(`${mins} min${mins === 1 ? '' : 's'}`);
+    if (secs && !hours && !mins) parts.push(`${secs} sec${secs === 1 ? '' : 's'}`);
+    return parts.join(' ') || `${mins} min`;
+  }
+  const numeric = /^\d+(?:\.\d+)?$/.test(trimmed);
+  if (numeric) return `${trimmed} min`;
+  return trimmed;
+};
+
 export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated, initialUrl }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -301,8 +320,8 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated, ini
         title: response.recipe.title || 'Untitled Recipe',
         description: response.recipe.description || '',
         cuisine: response.recipe.cuisine || 'International',
-        prepTime: response.recipe.prepTime || 'N/A',
-        cookTime: response.recipe.cookTime || 'N/A',
+        prepTime: normalizeDuration(response.recipe.prepTime) || 'N/A',
+        cookTime: normalizeDuration(response.recipe.cookTime) || 'N/A',
         servings: response.recipe.servings || 'N/A',
         ingredients: response.recipe.ingredients || [],
         instructions: response.recipe.instructions || [],

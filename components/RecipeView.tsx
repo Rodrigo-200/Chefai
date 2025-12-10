@@ -62,6 +62,25 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
   const recipeTags = Array.isArray(recipe.tags) ? recipe.tags : [];
   const nutrition = recipe.nutrition || {};
 
+    const formatDuration = (value?: string | null) => {
+        if (!value) return '';
+        const trimmed = value.trim();
+        const iso = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/i.exec(trimmed);
+        if (iso) {
+            const hours = iso[1] ? parseInt(iso[1], 10) : 0;
+            const mins = iso[2] ? parseInt(iso[2], 10) : 0;
+            const secs = iso[3] ? parseInt(iso[3], 10) : 0;
+            const parts = [] as string[];
+            if (hours) parts.push(`${hours} hr${hours === 1 ? '' : 's'}`);
+            if (mins) parts.push(`${mins} min${mins === 1 ? '' : 's'}`);
+            if (secs && !hours && !mins) parts.push(`${secs} sec${secs === 1 ? '' : 's'}`);
+            return parts.join(' ') || `${mins} min`;
+        }
+        const numeric = /^\d+(?:\.\d+)?$/.test(trimmed);
+        if (numeric) return `${trimmed} min`;
+        return trimmed;
+    };
+
   // Sync editedRecipe when recipe prop changes
   useEffect(() => {
     setEditedRecipe(recipe);
@@ -303,7 +322,7 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                     {isEditing ? (
                         <input type="text" value={editedRecipe.prepTime} onChange={(e) => updateField('prepTime', e.target.value)} className="w-20 text-center font-bold text-xl border-b border-gray-300 dark:bg-transparent dark:text-white focus:border-chef-500 outline-none" />
                     ) : (
-                        <span className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{recipe.prepTime || '-'}</span>
+                        <span className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{formatDuration(recipe.prepTime) || '-'}</span>
                     )}
                 </div>
                 
@@ -315,7 +334,7 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                     {isEditing ? (
                         <input type="text" value={editedRecipe.cookTime} onChange={(e) => updateField('cookTime', e.target.value)} className="w-20 text-center font-bold text-xl border-b border-gray-300 dark:bg-transparent dark:text-white focus:border-chef-500 outline-none" />
                     ) : (
-                        <span className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{recipe.cookTime || '-'}</span>
+                        <span className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{formatDuration(recipe.cookTime) || '-'}</span>
                     )}
                 </div>
 

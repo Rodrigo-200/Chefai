@@ -239,11 +239,11 @@ export const getIngredientImageCandidates = (name: string): string[] => {
   if (!slug) return [];
 
   const candidates = [
+    `https://www.themealdb.com/images/ingredients/${title}.png`,
+    `https://www.themealdb.com/images/ingredients/${title}-Small.png`,
     `https://img.spoonacular.com/ingredients_500x500/${slug}.jpg`,
     `https://spoonacular.com/cdn/ingredients_250x250/${slug}.jpg`,
     `https://img.spoonacular.com/ingredients_100x100/${slug}.jpg`,
-    `https://www.themealdb.com/images/ingredients/${title}.png`,
-    `https://www.themealdb.com/images/ingredients/${title}-Small.png`,
   ];
 
   const unique = Array.from(new Set(candidates.filter(Boolean)));

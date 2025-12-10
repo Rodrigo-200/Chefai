@@ -2,6 +2,25 @@ import React from 'react';
 import { Recipe } from '../types';
 import { Clock, Users, ChefHat, Heart, X } from 'lucide-react';
 
+const formatDuration = (value?: string | null) => {
+  if (!value) return '';
+  const trimmed = value.trim();
+  const iso = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/i.exec(trimmed);
+  if (iso) {
+    const hours = iso[1] ? parseInt(iso[1], 10) : 0;
+    const mins = iso[2] ? parseInt(iso[2], 10) : 0;
+    const secs = iso[3] ? parseInt(iso[3], 10) : 0;
+    const parts = [] as string[];
+    if (hours) parts.push(`${hours} hr${hours === 1 ? '' : 's'}`);
+    if (mins) parts.push(`${mins} min${mins === 1 ? '' : 's'}`);
+    if (secs && !hours && !mins) parts.push(`${secs} sec${secs === 1 ? '' : 's'}`);
+    return parts.join(' ') || `${mins} min`;
+  }
+  const numeric = /^\d+(?:\.\d+)?$/.test(trimmed);
+  if (numeric) return `${trimmed} min`;
+  return trimmed;
+};
+
 interface RecipeCardProps {
   recipe: Recipe;
   onClick: (recipe: Recipe) => void;
@@ -72,7 +91,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, onRemov
         <div className="flex items-center gap-3 text-xs font-medium text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-1">
             <Clock size={12} />
-            <span>{recipe.cookTime || 'N/A'}</span>
+            <span>{formatDuration(recipe.cookTime) || 'N/A'}</span>
           </div>
           <div className="flex items-center gap-1">
             <Users size={12} />
