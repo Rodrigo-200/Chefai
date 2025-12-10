@@ -572,20 +572,12 @@ export default function App() {
 
         {view === 'dashboard' && (
              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-12 pb-32 md:pb-12">
-                {/* Hero Header */}
-                <div className="relative overflow-hidden bg-gradient-to-br from-chef-600 via-chef-500 to-amber-500 rounded-[2rem] p-6 md:p-12 mb-6 md:mb-10 text-white shadow-xl shadow-chef-500/20">
-                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yIDItNCAyLTRzLTItMi00LTItNCAxLTQgMSAwLTMgMi01IDItMiA0LTIgNCAyIDQgMnMwIDItMiA0LTItMi0yLTR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"></div>
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-4 mb-2 md:mb-4">
-                            <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-inner">
-                                <BookOpen size={20} className="md:w-6 md:h-6" />
-                            </div>
-                            <div>
-                                <h1 className="text-2xl md:text-4xl font-bold tracking-tight">My Cookbook</h1>
-                                <p className="text-white/90 text-xs md:text-sm font-medium">{recipes.length} recipe{recipes.length !== 1 ? 's' : ''} · {savedRecipes.length} saved</p>
-                            </div>
-                        </div>
-                    </div>
+                {/* Minimal Header */}
+                <div className="mb-6 md:mb-10">
+                    <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">My Cookbook</h1>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base">
+                        {recipes.length} recipe{recipes.length !== 1 ? 's' : ''} · {savedRecipes.length} saved
+                    </p>
                 </div>
 
                 {/* Search Bar - Sticky on Mobile */}
@@ -667,27 +659,6 @@ export default function App() {
                             <span className="ml-auto md:ml-2 px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-bold rounded-full">{recipes.length}</span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-                            {filteredRecipes.map(recipe => (
-                                <RecipeCard 
-                                    key={recipe.id} 
-                                    recipe={recipe} 
-                                    onClick={(r) => { setActiveRecipe(r); setView('recipe-detail'); }}
-                                    isSaved={user ? user.savedRecipeIds.includes(recipe.id) : false}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* All Recipes / History */}
-                {recipes.length > 0 && (
-                    <div>
-                        <div className="flex items-center gap-2 mb-6">
-                            <span className="text-2xl">📖</span>
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">All Recipes</h2>
-                            <span className="ml-2 px-2.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm font-semibold rounded-full">{recipes.length}</span>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {filteredRecipes.map(recipe => (
                                 <RecipeCard 
                                     key={recipe.id} 
