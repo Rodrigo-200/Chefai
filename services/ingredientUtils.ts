@@ -173,6 +173,19 @@ const INGREDIENT_MAP: Record<string, string> = {
   'kilograms': 'Kilogram',
   'liters': 'Liter',
   'milliliters': 'Milliliter',
+  
+  // English Overrides & Common Fixes
+  'chicken': 'whole-chicken',
+  'egg': 'egg',
+  'chocolate sugar': 'sugar',
+  'vegetable oil': 'vegetable-oil',
+  'olive oil': 'olive-oil',
+  'milk': 'milk',
+  'flour': 'flour',
+  'sugar': 'sugar',
+  'salt': 'salt',
+  'pepper': 'pepper',
+  'water': 'water',
 };
 
 export const getIngredientImage = (name: string): string => {
@@ -181,28 +194,42 @@ export const getIngredientImage = (name: string): string => {
   // 1. Clean up the name
   let cleanName = name.toLowerCase().trim();
   
-  // Remove common prefixes/suffixes that might confuse the match
-  const removeWords = [
-    'fresh', 'chopped', 'diced', 'sliced', 'minced', 'grated', 'peeled', 'crushed', 'ground', 'dried', 'frozen', 'raw', 'cooked', 'roasted', 'baked', 'fried', 'boiled', 'steamed', 'grilled', 'large', 'medium', 'small', 'whole', 'organic', 'extra', 'virgin', 'olive', 'vegetable', 'sunflower', 'canola', 'coconut', 'almond', 'soy', 'milk', 'white', 'brown', 'red', 'green', 'yellow', 'black', 'blue', 'sweet', 'sour', 'hot', 'spicy', 'mild', 'salt', 'pepper', 'powder', 'sauce', 'paste', 'extract', 'juice', 'zest', 'skin', 'boneless', 'skinless', 'fat-free', 'low-fat', 'full-fat', 'skimmed', 'heavy', 'whipping', 'double', 'single', 'sour', 'cream', 'cheese', 'yogurt', 'butter', 'margarine', 'oil', 'vinegar', 'wine', 'beer', 'cider', 'liquor', 'spirit', 'water', 'broth', 'stock', 'soup', 'bouillon', 'cube', 'granule', 'flake', 'leaf', 'sprig', 'bunch', 'pinch', 'dash', 'drop', 'handful', 'cup', 'tablespoon', 'teaspoon', 'pound', 'ounce', 'gram', 'kilogram', 'liter', 'milliliter', 'can', 'tin', 'jar', 'bottle', 'box', 'bag', 'packet', 'package', 'container', 'tub', 'stick', 'block', 'slice', 'piece', 'wedge', 'chunk', 'fillet', 'steak', 'chop', 'breast', 'thigh', 'wing', 'leg', 'drumstick', 'rib', 'loin', 'shoulder', 'rump', 'brisket', 'shank', 'flank', 'belly', 'liver', 'kidney', 'heart', 'tongue', 'tail', 'head', 'cheek', 'ear', 'foot', 'trotter', 'hock', 'knuckle', 'bone', 'marrow', 'skin', 'fat', 'suet', 'lard', 'dripping', 'tallow', 'grease', 'gelatin', 'agar', 'pectin', 'yeast', 'baking', 'soda', 'powder', 'cornstarch', 'arrowroot', 'tapioca', 'sago', 'flour', 'meal', 'bran', 'germ', 'gluten', 'starch', 'semolina', 'couscous', 'bulgur', 'quinoa', 'millet', 'barley', 'oat', 'rye', 'spelt', 'kamut', 'triticale', 'teff', 'sorghum', 'buckwheat', 'amaranth', 'rice', 'pasta', 'noodle', 'spaghetti', 'macaroni', 'lasagna', 'ravioli', 'tortellini', 'gnocchi', 'dumpling', 'wrapper', 'sheet', 'dough', 'batter', 'crust', 'pastry', 'bread', 'toast', 'bun', 'roll', 'bagel', 'muffin', 'scone', 'biscuit', 'cracker', 'cookie', 'cake', 'pie', 'tart', 'brownie', 'bar', 'pudding', 'custard', 'mousse', 'jelly', 'jam', 'preserve', 'marmalade', 'curd', 'spread', 'dip', 'dressing', 'mayonnaise', 'ketchup', 'mustard', 'relish', 'chutney', 'pickle', 'olive', 'caper', 'anchovy', 'sardine', 'tuna', 'salmon', 'cod', 'haddock', 'halibut', 'trout', 'bass', 'snapper', 'grouper', 'tilapia', 'catfish', 'carp', 'perch', 'pike', 'walleye', 'swordfish', 'marlin', 'shark', 'skate', 'ray', 'eel', 'squid', 'octopus', 'cuttlefish', 'clam', 'mussel', 'oyster', 'scallop', 'shrimp', 'prawn', 'crab', 'lobster', 'crayfish', 'snail', 'frog', 'turtle', 'alligator', 'crocodile', 'snake', 'insect', 'worm', 'grub', 'larva', 'pupa', 'egg', 'roe', 'caviar', 'tofu', 'tempeh', 'seitan', 'miso', 'natto', 'soy', 'bean', 'pea', 'lentil', 'chickpea', 'peanut', 'nut', 'seed', 'kernel', 'sprout', 'shoot', 'stalk', 'stem', 'root', 'tuber', 'bulb', 'corm', 'rhizome', 'flower', 'bud', 'fruit', 'berry', 'melon', 'gourd', 'squash', 'pumpkin', 'cucumber', 'zucchini', 'eggplant', 'pepper', 'chili', 'tomato', 'tomatillo', 'okra', 'corn', 'maize', 'wheat', 'rice', 'barley', 'oat', 'rye', 'millet', 'sorghum', 'teff', 'fonio', 'triticale', 'canary', 'grass', 'job', 'tear', 'wild', 'rice', 'bamboo', 'palm', 'heart', 'fern', 'fiddlehead', 'cactus', 'pad', 'aloe', 'vera', 'seaweed', 'algae', 'kelp', 'nori', 'dulse', 'wakame', 'kombu', 'hijiki', 'arame', 'irish', 'moss', 'carrageenan', 'agar', 'spirulina', 'chlorella', 'mushroom', 'fungus', 'truffle', 'yeast', 'mold', 'bacteria', 'probiotic', 'prebiotic', 'enzyme', 'vitamin', 'mineral', 'supplement', 'additive', 'preservative', 'color', 'flavor', 'sweetener', 'sugar', 'syrup', 'honey', 'molasses', 'agave', 'nectar', 'stevia', 'monk', 'fruit', 'erythritol', 'xylitol', 'sorbitol', 'mannitol', 'maltitol', 'isomalt', 'lactitol', 'glycerol', 'saccharin', 'aspartame', 'sucralose', 'acesulfame', 'neotame', 'advantame', 'cyclamate', 'thaumatin', 'brazzein', 'pentadin', 'monellin', 'curculin', 'miraculin', 'glycyrrhizin'
+  // Common adjectives to remove for better matching
+  const ADJECTIVES = [
+    'fresh', 'raw', 'cooked', 'dried', 'ground', 'whole', 'chopped', 'sliced', 'diced', 'minced', 'grated', 'crushed',
+    'large', 'medium', 'small', 'organic', 'sweet', 'sour', 'hot', 'spicy', 'boneless', 'skinless', 'fat-free', 'low-fat',
+    'frozen', 'canned', 'prepared', 'mixed'
   ];
-  
-  // 2. Check direct mapping first (for exact matches like "pollo")
+
+  // 2. Check direct mapping first
   if (INGREDIENT_MAP[cleanName]) {
     const mappedSlug = INGREDIENT_MAP[cleanName].toLowerCase().replace(/\s+/g, '-');
-    return `https://spoonacular.com/cdn/ingredients_100x100/${mappedSlug}.jpg`;
+    return `https://spoonacular.com/cdn/ingredients_250x250/${mappedSlug}.jpg`;
   }
 
   // 3. Try to find a mapped word inside the string
-  // e.g. "pechuga de pollo" -> contains "pollo" -> "Chicken"
   for (const [key, value] of Object.entries(INGREDIENT_MAP)) {
-    if (cleanName.includes(key)) {
+    // Only match if it's a whole word
+    const regex = new RegExp(`\\b${key}\\b`, 'i');
+    if (regex.test(cleanName)) {
        const mappedSlug = value.toLowerCase().replace(/\s+/g, '-');
-       return `https://spoonacular.com/cdn/ingredients_100x100/${mappedSlug}.jpg`;
+       return `https://spoonacular.com/cdn/ingredients_250x250/${mappedSlug}.jpg`;
     }
   }
 
-  // 4. Fallback to original name (slugified)
-  // Spoonacular format: lowercase, hyphens instead of spaces
+  // 4. Clean adjectives and try again
+  let strippedName = cleanName;
+  ADJECTIVES.forEach(adj => {
+      strippedName = strippedName.replace(new RegExp(`\\b${adj}\\b`, 'gi'), '').trim();
+  });
+  strippedName = strippedName.replace(/\s+/g, ' ').trim();
+
+  if (strippedName && strippedName !== cleanName) {
+      const slug = strippedName.replace(/\s+/g, '-');
+      return `https://spoonacular.com/cdn/ingredients_250x250/${slug}.jpg`;
+  }
+
+  // 5. Fallback to original name (slugified)
   const slug = cleanName.replace(/\s+/g, '-');
-  return `https://spoonacular.com/cdn/ingredients_100x100/${slug}.jpg`;
+  return `https://spoonacular.com/cdn/ingredients_250x250/${slug}.jpg`;
 };

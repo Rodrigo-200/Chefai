@@ -173,7 +173,7 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
   ];
 
   return (
-    <div className="bg-white dark:bg-gray-900 min-h-screen pb-20">
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-white dark:bg-gray-900 pb-20 animate-in slide-in-from-bottom-4 duration-300">
       {/* Immersive Hero */}
       <div className="relative h-[50vh] md:h-[60vh] w-full bg-gray-100 dark:bg-gray-800">
         {recipe.imageUrl && !imageError ? (
