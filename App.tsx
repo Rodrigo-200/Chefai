@@ -266,6 +266,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const { isDark, toggleDark } = useDarkMode();
   const [sharedUrl, setSharedUrl] = useState<string | null>(null);
+  const [mobileTab, setMobileTab] = useState<'saved' | 'all'>('saved');
 
   // Handle PWA Share Target
   useEffect(() => {
@@ -601,16 +602,40 @@ export default function App() {
                     </div>
                 </div>
 
+                {/* Mobile Tabs */}
+                <div className="md:hidden flex p-1 bg-gray-200/50 dark:bg-gray-800/50 rounded-xl mb-6 backdrop-blur-sm">
+                    <button
+                        onClick={() => setMobileTab('saved')}
+                        className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                            mobileTab === 'saved'
+                                ? 'bg-white dark:bg-gray-700 text-chef-600 dark:text-white shadow-sm'
+                                : 'text-gray-500 dark:text-gray-400'
+                        }`}
+                    >
+                        Saved ({savedRecipes.length})
+                    </button>
+                    <button
+                        onClick={() => setMobileTab('all')}
+                        className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                            mobileTab === 'all'
+                                ? 'bg-white dark:bg-gray-700 text-chef-600 dark:text-white shadow-sm'
+                                : 'text-gray-500 dark:text-gray-400'
+                        }`}
+                    >
+                        All Recipes ({recipes.length})
+                    </button>
+                </div>
+
                 {/* Saved Recipes Section */}
-                {user && (
-                    <div className="mb-12">
-                        <div className="flex items-center gap-2 mb-6">
-                            <span className="text-2xl">❤️</span>
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Saved Recipes</h2>
-                            <span className="ml-2 px-2.5 py-0.5 bg-chef-100 dark:bg-chef-900/50 text-chef-700 dark:text-chef-300 text-sm font-semibold rounded-full">{savedRecipes.length}</span>
+                {user && (mobileTab === 'saved' || window.innerWidth >= 768) && (
+                    <div className={`mb-8 md:mb-12 mt-4 md:mt-0 ${mobileTab === 'all' ? 'hidden md:block' : ''}`}>
+                        <div className="flex items-center gap-2 mb-4 md:mb-6 px-1">
+                            <span className="text-xl md:text-2xl">❤️</span>
+                            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Saved Recipes</h2>
+                            <span className="ml-auto md:ml-2 px-3 py-1 bg-chef-100 dark:bg-chef-900/50 text-chef-700 dark:text-chef-300 text-xs font-bold rounded-full">{savedRecipes.length}</span>
                         </div>
                         {savedRecipes.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                                 {savedRecipes.filter(r => r.title.toLowerCase().includes(searchQuery.toLowerCase())).map(recipe => (
                                     <RecipeCard 
                                         key={recipe.id} 
@@ -622,14 +647,35 @@ export default function App() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
-                                <div className="w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4 text-gray-400">
-                                    <BookOpen size={28} />
+                            <div className="text-center py-8 md:py-12 bg-white dark:bg-gray-800/50 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
+                                <div className="w-12 h-12 bg-gray-50 dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-3 text-gray-400">
+                                    <BookOpen size={24} />
                                 </div>
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No saved recipes yet</h3>
-                                <p className="text-gray-500 dark:text-gray-400 text-sm">Click the heart on any recipe to save it here</p>
+                                <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">No saved recipes</h3>
+                                <p className="text-gray-500 dark:text-gray-400 text-xs">Tap the heart to save recipes</p>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* All Recipes / History */}
+                {recipes.length > 0 && (mobileTab === 'all' || window.innerWidth >= 768) && (
+                    <div className={`mb-8 ${mobileTab === 'saved' ? 'hidden md:block' : ''}`}>
+                        <div className="flex items-center gap-2 mb-4 md:mb-6 px-1">
+                            <span className="text-xl md:text-2xl">📖</span>
+                            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">All Recipes</h2>
+                            <span className="ml-auto md:ml-2 px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-bold rounded-full">{recipes.length}</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                            {filteredRecipes.map(recipe => (
+                                <RecipeCard 
+                                    key={recipe.id} 
+                                    recipe={recipe} 
+                                    onClick={(r) => { setActiveRecipe(r); setView('recipe-detail'); }}
+                                    isSaved={user ? user.savedRecipeIds.includes(recipe.id) : false}
+                                />
+                            ))}
+                        </div>
                     </div>
                 )}
 

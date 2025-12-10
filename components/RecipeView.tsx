@@ -167,7 +167,10 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
         </button>
       </div>
 
-      <div className="px-5 py-8 md:px-8 md:py-10 -mt-12 relative z-10 bg-white dark:bg-gray-800 rounded-t-[2.5rem] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] print:px-0 print:py-4 print:mt-0 print:shadow-none">
+      <div className="px-5 py-8 md:px-8 md:py-10 -mt-12 relative z-10 bg-white dark:bg-gray-800 rounded-t-[2.5rem] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] print:px-0 print:py-4 print:mt-0 print:shadow-none min-h-[60vh]">
+        {/* Drag Handle for Mobile Sheet feel */}
+        <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-6 md:hidden" />
+
         {/* Header */}
         <div className="flex justify-between items-start mb-6 md:mb-8 print:block">
           <div className="flex-1">
@@ -189,18 +192,18 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                   type="text"
                   value={editedRecipe.title}
                   onChange={(e) => updateField('title', e.target.value)}
-                  className="flex-1 text-3xl md:text-4xl font-serif font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-chef-300 dark:border-chef-600 focus:border-chef-600 outline-none"
+                  className="flex-1 text-2xl md:text-4xl font-serif font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-chef-300 dark:border-chef-600 focus:border-chef-600 outline-none"
                 />
               ) : (
-                <h1 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 dark:text-white text-balance">{recipe.title}</h1>
+                <h1 className="text-2xl md:text-4xl font-serif font-bold text-gray-900 dark:text-white text-balance leading-tight">{recipe.title}</h1>
               )}
               {!isEditing && (
                 <button 
                   onClick={handleStartEdit}
-                  className="flex-shrink-0 p-1.5 text-gray-400 hover:text-chef-600 hover:bg-chef-50 dark:hover:bg-chef-900/50 rounded-lg transition-colors no-print"
+                  className="flex-shrink-0 p-2 text-gray-400 hover:text-chef-600 hover:bg-chef-50 dark:hover:bg-chef-900/50 rounded-lg transition-colors no-print"
                   title="Edit recipe"
                 >
-                  <Edit3 size={16} />
+                  <Edit3 size={20} />
                 </button>
               )}
             </div>
@@ -230,25 +233,25 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
             {isLoggedIn && (
               <button 
                 onClick={() => isSaved ? onUnsave(recipe) : onSave(recipe)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all shadow-sm ${
                   isSaved 
                     ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50' 
                     : 'bg-chef-600 text-white hover:bg-chef-700'
                 }`}
               >
-                <Heart size={14} fill={isSaved ? 'currentColor' : 'none'} />
-                {isSaved ? 'Saved' : 'Save'}
+                <Heart size={16} fill={isSaved ? 'currentColor' : 'none'} />
+                <span className="hidden md:inline">{isSaved ? 'Saved' : 'Save'}</span>
               </button>
             )}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDownloadMenuOpen((prev) => !prev)}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg transition-colors text-xs font-medium"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg transition-colors text-xs font-medium w-full"
                 title="Downloads and exports"
               >
                 <Download size={16} />
-                Export
-                <ChevronDown size={16} className={`transition-transform ${downloadMenuOpen ? 'rotate-180' : ''}`} />
+                <span className="hidden md:inline">Export</span>
+                <ChevronDown size={14} className={`transition-transform ${downloadMenuOpen ? 'rotate-180' : ''}`} />
               </button>
               {downloadMenuOpen && (
                 <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-20 overflow-hidden">
@@ -275,9 +278,9 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
             </div>
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="flex items-center justify-center gap-1 px-2 py-1.5 text-gray-400 hover:text-red-500 transition-colors text-xs"
+              className="flex items-center justify-center gap-1 px-2 py-2 text-gray-400 hover:text-red-500 transition-colors text-xs hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
             >
-              <Trash2 size={12} />
+              <Trash2 size={16} />
             </button>
           </div>
 
@@ -315,8 +318,8 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-y border-gray-100 dark:border-gray-700 mb-10">
-          <div className="flex flex-col items-center justify-center p-3 bg-chef-50 dark:bg-chef-900/30 rounded-xl">
+        <div className="grid grid-cols-4 gap-2 md:gap-4 py-4 md:py-6 border-y border-gray-100 dark:border-gray-700 mb-8 md:mb-10">
+          <div className="flex flex-col items-center justify-center p-2 md:p-3 bg-chef-50 dark:bg-chef-900/30 rounded-2xl">
              <span className="text-chef-400 dark:text-chef-500 text-[10px] uppercase font-bold tracking-widest mb-1">Prep</span>
              {isEditing ? (
                <input
@@ -326,10 +329,10 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                  className="w-full text-center bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 text-gray-900 dark:text-white font-bold text-sm focus:border-chef-500 outline-none"
                />
              ) : (
-               <span className="text-gray-900 dark:text-white font-bold">{recipe.prepTime}</span>
+               <span className="text-gray-900 dark:text-white font-bold text-sm md:text-base">{recipe.prepTime}</span>
              )}
           </div>
-          <div className="flex flex-col items-center justify-center p-3 bg-chef-50 dark:bg-chef-900/30 rounded-xl">
+          <div className="flex flex-col items-center justify-center p-2 md:p-3 bg-chef-50 dark:bg-chef-900/30 rounded-2xl">
              <span className="text-chef-400 dark:text-chef-500 text-[10px] uppercase font-bold tracking-widest mb-1">Cook</span>
              {isEditing ? (
                <input
@@ -339,11 +342,11 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                  className="w-full text-center bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 text-gray-900 dark:text-white font-bold text-sm focus:border-chef-500 outline-none"
                />
              ) : (
-               <span className="text-gray-900 dark:text-white font-bold">{recipe.cookTime}</span>
+               <span className="text-gray-900 dark:text-white font-bold text-sm md:text-base">{recipe.cookTime}</span>
              )}
           </div>
-          <div className="flex flex-col items-center justify-center p-3 bg-chef-50 dark:bg-chef-900/30 rounded-xl">
-             <span className="text-chef-400 dark:text-chef-500 text-[10px] uppercase font-bold tracking-widest mb-1">Servings*</span>
+          <div className="flex flex-col items-center justify-center p-2 md:p-3 bg-chef-50 dark:bg-chef-900/30 rounded-2xl">
+             <span className="text-chef-400 dark:text-chef-500 text-[10px] uppercase font-bold tracking-widest mb-1">Servings</span>
              {isEditing ? (
                <input
                  type="text"
@@ -352,12 +355,12 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                  className="w-full text-center bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 text-gray-900 dark:text-white font-bold text-sm focus:border-chef-500 outline-none"
                />
              ) : (
-               <span className="text-gray-900 dark:text-white font-bold">{recipe.servings}</span>
+               <span className="text-gray-900 dark:text-white font-bold text-sm md:text-base">{recipe.servings}</span>
              )}
           </div>
-           <div className="flex flex-col items-center justify-center p-3 bg-chef-50 dark:bg-chef-900/30 rounded-xl text-center">
-             <span className="text-chef-400 dark:text-chef-500 text-[10px] uppercase font-bold tracking-widest mb-1">Calories*</span>
-             <span className="text-gray-900 dark:text-white font-bold">{nutrition.calories || 'N/A'}</span>
+           <div className="flex flex-col items-center justify-center p-2 md:p-3 bg-chef-50 dark:bg-chef-900/30 rounded-2xl text-center">
+             <span className="text-chef-400 dark:text-chef-500 text-[10px] uppercase font-bold tracking-widest mb-1">Cal</span>
+             <span className="text-gray-900 dark:text-white font-bold text-sm md:text-base">{nutrition.calories || 'N/A'}</span>
           </div>
         </div>
 
@@ -415,14 +418,14 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                 </button>
               </div>
             ) : (
-              <ul className="space-y-4">
+              <ul className="space-y-3">
                 {recipe.ingredients.map((ingredient, idx) => (
-                  <li key={idx} className="flex items-start gap-3 pb-4 border-b border-gray-50 dark:border-gray-700 last:border-0">
-                    <div className="w-1.5 h-1.5 rounded-full bg-chef-400 mt-2 flex-shrink-0" />
+                  <li key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/30 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
+                    <div className="w-2 h-2 rounded-full bg-chef-400 mt-2 flex-shrink-0" />
                     <div className="flex-1">
                       <span className="font-bold text-gray-900 dark:text-white">{ingredient.amount} {ingredient.unit}</span>
-                      <span className="text-gray-600 dark:text-gray-300"> {ingredient.name}</span>
-                      {ingredient.notes && <span className="text-gray-400 dark:text-gray-500 text-sm italic block mt-0.5">{ingredient.notes}</span>}
+                      <span className="text-gray-700 dark:text-gray-300"> {ingredient.name}</span>
+                      {ingredient.notes && <span className="text-gray-500 dark:text-gray-400 text-sm block mt-0.5">{ingredient.notes}</span>}
                     </div>
                   </li>
                 ))}
@@ -473,14 +476,14 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                 </button>
               </div>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-6 md:space-y-8">
                 {recipe.instructions.map((step, idx) => (
                   <div key={idx} className="flex gap-4 group">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-chef-100 dark:bg-chef-900/50 text-chef-700 dark:text-chef-300 flex items-center justify-center font-bold font-serif text-lg group-hover:bg-chef-600 group-hover:text-white transition-colors">
+                    <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-chef-100 dark:bg-chef-900/50 text-chef-700 dark:text-chef-300 flex items-center justify-center font-bold font-serif text-base md:text-lg group-hover:bg-chef-600 group-hover:text-white transition-colors shadow-sm">
                       {step.stepNumber}
                     </div>
-                    <div className="flex-1 pt-1">
-                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg">{step.description}</p>
+                    <div className="flex-1 pt-0.5 md:pt-1">
+                      <p className="text-gray-800 dark:text-gray-200 leading-relaxed text-base md:text-lg">{step.description}</p>
                       {formatTimerSeconds(step.timerSeconds) && (
                          <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium">
                            <Clock size={14} />
