@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Recipe } from '../types';
-import { ArrowLeft, Clock, Printer, FileText, FileDown, Globe, ChevronDown, Copy, Download, Heart, Trash2, Edit3, X, Check, AlertCircle, Plus, ChefHat, Users, Flame, Utensils } from 'lucide-react';
+import { ArrowLeft, Clock, Printer, FileText, FileDown, Globe, ChevronDown, Copy, Download, Heart, Trash2, Edit3, X, Check, AlertCircle, Plus, ChefHat, Users, Flame, Utensils, ExternalLink } from 'lucide-react';
 import { downloadMarkdown, downloadPlainText, exportRecipeToPDF } from '../services/exportService';
 
 interface RecipeViewProps {
@@ -192,31 +192,31 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent pointer-events-none" />
 
         {/* Navigation Overlay */}
-        <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-10">
+        <div className="fixed top-0 left-0 right-0 p-4 md:p-6 flex justify-between items-start z-50 pointer-events-none">
             <button 
               onClick={onBack}
-              className="h-12 w-12 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 transition-colors"
+              className="pointer-events-auto h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 transition-colors shadow-sm"
             >
-              <ArrowLeft size={24} />
+              <ArrowLeft size={20} />
             </button>
             
-            <div className="flex gap-3">
+            <div className="flex gap-3 pointer-events-auto">
                 {isLoggedIn && (
                     <button 
                         onClick={() => isSaved ? onUnsave(recipe) : onSave(recipe)}
-                        className={`h-12 w-12 flex items-center justify-center rounded-full backdrop-blur-md transition-colors ${
+                        className={`h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-full backdrop-blur-md transition-colors shadow-sm ${
                             isSaved ? 'bg-red-500 text-white' : 'bg-black/20 text-white hover:bg-black/40'
                         }`}
                     >
-                        <Heart size={24} fill={isSaved ? 'currentColor' : 'none'} />
+                        <Heart size={20} fill={isSaved ? 'currentColor' : 'none'} />
                     </button>
                 )}
                 <div className="relative" ref={dropdownRef}>
                     <button 
                         onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
-                        className="h-12 w-12 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 transition-colors"
+                        className="h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 transition-colors shadow-sm"
                     >
-                        <Download size={24} />
+                        <Download size={20} />
                     </button>
                     {/* Dropdown Menu */}
                     {downloadMenuOpen && (
@@ -233,9 +233,9 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                 {!isEditing && (
                     <button 
                         onClick={handleStartEdit}
-                        className="h-12 w-12 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 transition-colors"
+                        className="h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 transition-colors shadow-sm"
                     >
-                        <Edit3 size={24} />
+                        <Edit3 size={20} />
                     </button>
                 )}
             </div>
@@ -274,6 +274,18 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                     <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto mb-8 font-serif">
                         {recipe.description}
                     </p>
+
+                    {recipe.sourceUrl && (
+                        <a 
+                            href={recipe.sourceUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-chef-600 dark:text-chef-400 hover:text-chef-700 dark:hover:text-chef-300 font-medium mb-8 transition-colors"
+                        >
+                            <ExternalLink size={16} />
+                            <span>View Original Source</span>
+                        </a>
+                    )}
                 </>
             )}
 

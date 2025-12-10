@@ -188,18 +188,21 @@ export const getIngredientImage = (name: string): string => {
   
   // 2. Check direct mapping first (for exact matches like "pollo")
   if (INGREDIENT_MAP[cleanName]) {
-    return `https://www.themealdb.com/images/ingredients/${encodeURIComponent(INGREDIENT_MAP[cleanName])}.png`;
+    const mappedSlug = INGREDIENT_MAP[cleanName].toLowerCase().replace(/\s+/g, '-');
+    return `https://spoonacular.com/cdn/ingredients_100x100/${mappedSlug}.jpg`;
   }
 
   // 3. Try to find a mapped word inside the string
   // e.g. "pechuga de pollo" -> contains "pollo" -> "Chicken"
   for (const [key, value] of Object.entries(INGREDIENT_MAP)) {
     if (cleanName.includes(key)) {
-       return `https://www.themealdb.com/images/ingredients/${encodeURIComponent(value)}.png`;
+       const mappedSlug = value.toLowerCase().replace(/\s+/g, '-');
+       return `https://spoonacular.com/cdn/ingredients_100x100/${mappedSlug}.jpg`;
     }
   }
 
-  // 4. Fallback to original name (capitalized)
-  const formattedName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
-  return `https://www.themealdb.com/images/ingredients/${encodeURIComponent(formattedName)}.png`;
+  // 4. Fallback to original name (slugified)
+  // Spoonacular format: lowercase, hyphens instead of spaces
+  const slug = cleanName.replace(/\s+/g, '-');
+  return `https://spoonacular.com/cdn/ingredients_100x100/${slug}.jpg`;
 };
