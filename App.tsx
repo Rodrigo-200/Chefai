@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { ChefHat, BookOpen, PlusCircle, LogOut, Search, Moon, Sun, Shield, Mail, Lock, ArrowRight, Home, User as UserIcon } from 'lucide-react';
+import { ChefHat, BookOpen, PlusCircle, LogOut, Search, Moon, Sun, Shield, Mail, Lock, ArrowRight, Home, User as UserIcon, FolderPlus, ChevronLeft, Folder as FolderIcon, Settings } from 'lucide-react';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, updateProfile } from 'firebase/auth';
-import { Recipe, AppView, User } from './types';
+import { Recipe, AppView, User, Folder } from './types';
 import { CreateRecipe } from './components/CreateRecipe';
 import { RecipeView } from './components/RecipeView';
 import { RecipeCard } from './components/RecipeCard';
-import { loadRecipes, saveRecipes, migrateLegacyRecipes, loadUserRecipes, saveRecipeForUser, deleteRecipeForUser } from './services/storageService';
+import { FolderCard } from './components/FolderCard';
+import { FolderModal } from './components/FolderModal';
+import { MoveToFolderModal } from './components/MoveToFolderModal';
+import { FloatingActionMenu } from './components/FloatingActionMenu';
+import { AddFromSavedModal } from './components/AddFromSavedModal';
+import { loadRecipes, saveRecipes, migrateLegacyRecipes, loadUserRecipes, saveRecipeForUser, deleteRecipeForUser, loadUserFolders, saveFolderForUser, deleteFolderForUser } from './services/storageService';
 import { auth, googleProvider } from './services/firebase';
 import { addSavedRecipeId, ensureUserProfile, removeSavedRecipeId } from './services/userService';
 
@@ -266,7 +271,10 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const { isDark, toggleDark } = useDarkMode();
   const [sharedUrl, setSharedUrl] = useState<string | null>(null);
-  const [mobileTab, setMobileTab] = useState<'saved' | 'all'>('saved');
+  const [mobileTab, setMobileTab] = useState<'saved' | 'all'>('all');
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
 
   // Handle PWA Share Target
   useEffect(() => {
@@ -310,6 +318,10 @@ export default function App() {
     }
   }, [view]);
 
+  const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
+  const [recipeToMove, setRecipeToMove] = useState<Recipe | null>(null);
+
   // Load recipes for the current user (cloud) or fallback to local for guests
   useEffect(() => {
     let mounted = true;
@@ -319,9 +331,11 @@ export default function App() {
         console.log("User logged in, loading cloud recipes for:", user.uid);
         try {
           const cloudRecipes = await loadUserRecipes(user.uid);
+          const cloudFolders = await loadUserFolders(user.uid);
           if (mounted) {
             console.log("Cloud recipes loaded:", cloudRecipes.length);
             setRecipes(cloudRecipes);
+            setFolders(cloudFolders);
           }
         } catch (e) {
           console.error("Error loading cloud recipes:", e);
@@ -329,7 +343,10 @@ export default function App() {
       } else {
         console.log("No user, loading local recipes");
         const localRecipes = await loadRecipes();
-        if (mounted) setRecipes(localRecipes);
+        if (mounted) {
+          setRecipes(localRecipes);
+          setFolders([]);
+        }
       }
     })();
     return () => {
@@ -337,7 +354,98 @@ export default function App() {
     };
   }, [user]);
 
+  const handleCreateFolder = (name: string) => {
+    if (!user) return;
+    
+    const newFolder: Folder = {
+      id: crypto.randomUUID(),
+      name,
+      createdAt: Date.now(),
+      recipeCount: 0,
+    };
+
+    saveFolderForUser(user.uid, newFolder).then(() => {
+      setFolders([...folders, newFolder]);
+    }).catch(error => {
+      console.error("Failed to create folder:", error);
+      alert("Failed to create folder.");
+    });
+  };
+
+  const handleMoveRecipe = async (folderId: string | undefined) => {
+      if (!user || !recipeToMove) return;
+      
+      // Use null instead of undefined to ensure Firestore clears the field
+      const updatedRecipe = { ...recipeToMove, folderId: folderId || null };
+      
+      // Optimistic update
+      setRecipes(recipes.map(r => r.id === updatedRecipe.id ? updatedRecipe : r));
+      setRecipeToMove(null);
+      
+      try {
+          await saveRecipeForUser(user.uid, updatedRecipe);
+      } catch (error) {
+          console.error("Failed to move recipe:", error);
+          // Revert on failure
+          setRecipes(recipes.map(r => r.id === recipeToMove.id ? recipeToMove : r));
+          alert("Failed to move recipe.");
+      }
+  };
+
+  const handleDeleteFolder = async (folderId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return;
+    if (!confirm("Are you sure you want to delete this folder? Recipes inside will be moved to 'All Recipes'.")) return;
+
+    try {
+      await deleteFolderForUser(user.uid, folderId);
+      setFolders(folders.filter(f => f.id !== folderId));
+      
+      // Update recipes to remove folderId
+      const recipesInFolder = recipes.filter(r => r.folderId === folderId);
+      const updatedRecipes = recipesInFolder.map(r => ({ ...r, folderId: undefined }));
+      
+      // Optimistically update local state
+      setRecipes(recipes.map(r => r.folderId === folderId ? { ...r, folderId: undefined } : r));
+
+      // Update in firestore
+      await Promise.all(updatedRecipes.map(r => saveRecipeForUser(user.uid, r)));
+
+    } catch (error) {
+      console.error("Failed to delete folder:", error);
+      alert("Failed to delete folder.");
+    }
+  };
+
+  const [isAddFromSavedModalOpen, setIsAddFromSavedModalOpen] = useState(false);
+
+  const handleAddFromSaved = async (recipeIds: string[]) => {
+    if (!user || !currentFolderId) return;
+
+    const updatedRecipes = recipes.map(r => {
+      if (recipeIds.includes(r.id)) {
+        return { ...r, folderId: currentFolderId };
+      }
+      return r;
+    });
+
+    setRecipes(updatedRecipes);
+
+    try {
+      const recipesToUpdate = updatedRecipes.filter(r => recipeIds.includes(r.id));
+      await Promise.all(recipesToUpdate.map(r => saveRecipeForUser(user.uid, r)));
+    } catch (error) {
+      console.error("Failed to add recipes to folder:", error);
+      alert("Failed to add recipes to folder.");
+    }
+  };
+
   const handleRecipeCreated = async (recipe: Recipe) => {
+    // If created while in a folder, assign it to that folder
+    if (currentFolderId) {
+        recipe.folderId = currentFolderId;
+    }
+
     // Add to local state and storage
     const newRecipes = [recipe, ...recipes];
     setRecipes(newRecipes);
@@ -413,9 +521,7 @@ export default function App() {
   };
 
   const filteredRecipes = recipes.filter(r => {
-      // If logged in and in dashboard, show saved only? 
-      // For this demo, we show all "Global" recipes in dashboard, but highlight saved ones.
-      // Or lets just show all recipes stored in browser.
+      if (!searchQuery) return true;
       return r.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
              r.cuisine.toLowerCase().includes(searchQuery.toLowerCase());
   });
@@ -567,166 +673,311 @@ export default function App() {
             onUpdate={handleUpdateRecipe}
             isSaved={user ? user.savedRecipeIds.includes(activeRecipe.id) : false}
             isLoggedIn={!!user}
+            folders={folders}
           />
         )}
 
         {view === 'dashboard' && (
-             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-12 pb-32 md:pb-12">
-                {/* Minimal Header */}
-                <div className="mb-6 md:mb-10">
-                    <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">My Cookbook</h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base">
-                        {recipes.length} recipe{recipes.length !== 1 ? 's' : ''} · {savedRecipes.length} saved
-                    </p>
-                </div>
-
-                {/* Search Bar - Sticky on Mobile */}
-                <div className="sticky top-16 z-30 -mx-4 px-4 py-2 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-sm md:static md:bg-transparent md:p-0 md:mx-0 md:mb-8 transition-all">
-                    <div className="relative group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-chef-500 transition-colors" size={20} />
+             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 pb-40 md:pb-12">
+                
+                {/* Search Bar - Always at top */}
+                <div className="mb-4">
+                    <div className="relative">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                         <input 
                             type="text" 
-                            placeholder="Search recipes, ingredients..." 
+                            placeholder="Search recipes..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3.5 md:py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-chef-500 focus:border-chef-500 outline-none text-base shadow-sm dark:text-white dark:placeholder-gray-400 transition-all"
+                            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full focus:ring-2 focus:ring-chef-500 focus:border-chef-500 outline-none text-base shadow-sm dark:text-white dark:placeholder-gray-400"
                         />
                     </div>
                 </div>
 
-                {/* Mobile Tabs */}
-                <div className="md:hidden flex p-1 bg-gray-200/50 dark:bg-gray-800/50 rounded-xl mb-6 backdrop-blur-sm">
-                    <button
-                        onClick={() => setMobileTab('saved')}
-                        className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
-                            mobileTab === 'saved'
-                                ? 'bg-white dark:bg-gray-700 text-chef-600 dark:text-white shadow-sm'
-                                : 'text-gray-500 dark:text-gray-400'
-                        }`}
-                    >
-                        Saved ({savedRecipes.length})
-                    </button>
-                    <button
-                        onClick={() => setMobileTab('all')}
-                        className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
-                            mobileTab === 'all'
-                                ? 'bg-white dark:bg-gray-700 text-chef-600 dark:text-white shadow-sm'
-                                : 'text-gray-500 dark:text-gray-400'
-                        }`}
-                    >
-                        All Recipes ({recipes.length})
-                    </button>
+                {/* Simple recipe count */}
+                <div className="flex items-center justify-between mb-4 px-1">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {searchQuery ? `${filteredRecipes.length} results` : `${recipes.length} recipes`}
+                    </span>
                 </div>
 
-                {/* Saved Recipes Section */}
-                {user && (mobileTab === 'saved' || window.innerWidth >= 768) && (
-                    <div className={`mb-8 md:mb-12 mt-4 md:mt-0 ${mobileTab === 'all' ? 'hidden md:block' : ''}`}>
-                        <div className="flex items-center gap-2 mb-4 md:mb-6 px-1">
-                            <span className="text-xl md:text-2xl">❤️</span>
-                            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Saved Recipes</h2>
-                            <span className="ml-auto md:ml-2 px-3 py-1 bg-chef-100 dark:bg-chef-900/50 text-chef-700 dark:text-chef-300 text-xs font-bold rounded-full">{savedRecipes.length}</span>
-                        </div>
-                        {savedRecipes.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                                {savedRecipes.filter(r => r.title.toLowerCase().includes(searchQuery.toLowerCase())).map(recipe => (
-                                    <RecipeCard 
-                                        key={recipe.id} 
-                                        recipe={recipe} 
-                                        onClick={(r) => { setActiveRecipe(r); setView('recipe-detail'); }}
-                                        onRemove={() => unsaveUserRecipe(recipe.id)}
-                                        showRemove
-                                    />
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-8 md:py-12 bg-white dark:bg-gray-800/50 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
-                                <div className="w-12 h-12 bg-gray-50 dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-3 text-gray-400">
-                                    <BookOpen size={24} />
-                                </div>
-                                <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">No saved recipes</h3>
-                                <p className="text-gray-500 dark:text-gray-400 text-xs">Tap the heart to save recipes</p>
-                            </div>
-                        )}
+                {/* Recipe Grid - Clean, simple, all recipes */}
+                {recipes.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+                        {(searchQuery ? filteredRecipes : recipes).map(recipe => (
+                            <RecipeCard 
+                                key={recipe.id} 
+                                recipe={recipe} 
+                                onClick={(r) => { setActiveRecipe(r); setView('recipe-detail'); }}
+                                isSaved={user ? user.savedRecipeIds.includes(recipe.id) : false}
+                                onRemove={() => handleDeleteRecipe(recipe.id)}
+                            />
+                        ))}
                     </div>
-                )}
-
-                {/* All Recipes / History */}
-                {recipes.length > 0 && (mobileTab === 'all' || window.innerWidth >= 768) && (
-                    <div className={`mb-8 ${mobileTab === 'saved' ? 'hidden md:block' : ''}`}>
-                        <div className="flex items-center gap-2 mb-4 md:mb-6 px-1">
-                            <span className="text-xl md:text-2xl">📖</span>
-                            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">All Recipes</h2>
-                            <span className="ml-auto md:ml-2 px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-bold rounded-full">{recipes.length}</span>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-                            {filteredRecipes.map(recipe => (
-                                <RecipeCard 
-                                    key={recipe.id} 
-                                    recipe={recipe} 
-                                    onClick={(r) => { setActiveRecipe(r); setView('recipe-detail'); }}
-                                    isSaved={user ? user.savedRecipeIds.includes(recipe.id) : false}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Empty State */}
-                {recipes.length === 0 && (
-                    <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700">
-                        <div className="w-20 h-20 bg-gradient-to-br from-chef-100 to-chef-200 dark:from-chef-800 dark:to-chef-700 rounded-3xl flex items-center justify-center mx-auto mb-6 text-chef-600 dark:text-chef-300">
+                ) : (
+                    <div className="text-center py-20">
+                        <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300 dark:text-gray-600">
                             <ChefHat size={40} />
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Your cookbook is empty</h3>
-                        <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-sm mx-auto">Create your first recipe from a video, image, or blog URL</p>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                            No recipes yet
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
+                            Add your first recipe to get started
+                        </p>
                         <button 
                             onClick={() => setView('create')}
-                            className="inline-flex items-center gap-2 bg-chef-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-chef-700 transition-colors shadow-lg shadow-chef-500/25"
+                            className="inline-flex items-center gap-2 bg-chef-600 text-white px-6 py-3 rounded-full font-medium hover:bg-chef-700 transition-colors"
                         >
-                            <PlusCircle size={20} />
-                            Create Recipe
+                            <PlusCircle size={18} />
+                            Add Recipe
                         </button>
+                    </div>
+                )}
+
+                {/* No results state */}
+                {searchQuery && filteredRecipes.length === 0 && recipes.length > 0 && (
+                    <div className="text-center py-12">
+                        <Search size={32} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                        <p className="text-gray-500 dark:text-gray-400">No recipes found for "{searchQuery}"</p>
                     </div>
                 )}
              </div>
         )}
+
+        {/* Collections View */}
+        {view === 'collections' && (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 pb-40 md:pb-12">
+                {!currentFolderId ? (
+                    <>
+                        {/* Collections Header */}
+                        <div className="flex items-center justify-between mb-6">
+                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Collections</h1>
+                            <button
+                                onClick={() => setIsFolderModalOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-chef-600 text-white rounded-full text-sm font-medium hover:bg-chef-700 transition-colors"
+                            >
+                                <FolderPlus size={18} />
+                                New
+                            </button>
+                        </div>
+
+                        {/* Collections Grid */}
+                        {folders.length > 0 ? (
+                            <div className="grid grid-cols-2 gap-4">
+                                {folders.map(folder => {
+                                    const count = recipes.filter(r => r.folderId === folder.id).length;
+                                    const folderRecipes = recipes.filter(r => r.folderId === folder.id);
+                                    const coverImage = folderRecipes[0]?.imageUrl;
+                                    
+                                    return (
+                                        <div
+                                            key={folder.id}
+                                            onClick={() => setCurrentFolderId(folder.id)}
+                                            className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 group text-left cursor-pointer"
+                                        >
+                                            {coverImage ? (
+                                                <img src={coverImage} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <FolderIcon size={40} className="text-gray-300 dark:text-gray-600" />
+                                                </div>
+                                            )}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                                            <div className="absolute bottom-0 left-0 right-0 p-4">
+                                                <p className="font-semibold text-white text-lg">{folder.name}</p>
+                                                <p className="text-white/70 text-sm">{count} recipe{count !== 1 ? 's' : ''}</p>
+                                            </div>
+                                            {/* Delete button */}
+                                            <button
+                                                onClick={(e) => handleDeleteFolder(folder.id, e)}
+                                                className="absolute top-3 right-3 p-2 bg-black/40 backdrop-blur-sm rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/60"
+                                            >
+                                                <LogOut size={16} />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="text-center py-20">
+                                <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <FolderIcon size={40} className="text-gray-300 dark:text-gray-600" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No collections yet</h3>
+                                <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Organize your recipes into collections</p>
+                                <button 
+                                    onClick={() => setIsFolderModalOpen(true)}
+                                    className="inline-flex items-center gap-2 bg-chef-600 text-white px-6 py-3 rounded-full font-medium hover:bg-chef-700 transition-colors"
+                                >
+                                    <FolderPlus size={18} />
+                                    Create Collection
+                                </button>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <>
+                        {/* Inside a Collection */}
+                        <div className="flex items-center gap-3 mb-6">
+                            <button 
+                                onClick={() => setCurrentFolderId(null)}
+                                className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                            >
+                                <ChevronLeft size={24} />
+                            </button>
+                            <div>
+                                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                                    {folders.find(f => f.id === currentFolderId)?.name}
+                                </h1>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    {recipes.filter(r => r.folderId === currentFolderId).length} recipes
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Add to collection button */}
+                        <button
+                            onClick={() => setIsAddFromSavedModalOpen(true)}
+                            className="w-full mb-6 p-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl text-gray-500 dark:text-gray-400 hover:border-chef-400 hover:text-chef-600 dark:hover:text-chef-400 transition-colors flex items-center justify-center gap-2"
+                        >
+                            <PlusCircle size={20} />
+                            Add recipes to this collection
+                        </button>
+
+                        {/* Recipes in collection */}
+                        {recipes.filter(r => r.folderId === currentFolderId).length > 0 ? (
+                            <div className="grid grid-cols-2 gap-3">
+                                {recipes.filter(r => r.folderId === currentFolderId).map(recipe => (
+                                    <RecipeCard 
+                                        key={recipe.id} 
+                                        recipe={recipe} 
+                                        onClick={(r) => { setActiveRecipe(r); setView('recipe-detail'); }}
+                                        isSaved={user ? user.savedRecipeIds.includes(recipe.id) : false}
+                                        onRemove={() => handleDeleteRecipe(recipe.id)}
+                                        onMove={() => { setRecipeToMove(recipe); setIsMoveModalOpen(true); }}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-12">
+                                <p className="text-gray-500 dark:text-gray-400">No recipes in this collection yet</p>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        )}
       </main>
 
-      {/* Bottom Navigation for Mobile */}
+      {/* Bottom Navigation for Mobile - Samsung Food style */}
       {user && (
-        <div className="md:hidden fixed bottom-6 left-6 right-6 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl shadow-2xl z-50 pb-safe">
-          <div className="flex items-center justify-around p-3">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 z-50 pb-safe">
+          <div className="flex items-center justify-around h-16">
             <button 
-              onClick={() => setView('dashboard')}
-              className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 ${view === 'dashboard' ? 'text-chef-600 dark:text-chef-400 bg-chef-50 dark:bg-chef-900/50' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+              onClick={() => { setView('dashboard'); setCurrentFolderId(null); }}
+              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${view === 'dashboard' && !currentFolderId ? 'text-chef-600 dark:text-chef-400' : 'text-gray-400 dark:text-gray-500'}`}
             >
-              <Home size={22} strokeWidth={view === 'dashboard' ? 2.5 : 2} />
+              <BookOpen size={22} strokeWidth={view === 'dashboard' && !currentFolderId ? 2.5 : 1.5} />
+              <span className="text-[10px] mt-1 font-medium">Recipes</span>
+            </button>
+
+            <button 
+              onClick={() => { setView('collections'); }}
+              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${view === 'collections' ? 'text-chef-600 dark:text-chef-400' : 'text-gray-400 dark:text-gray-500'}`}
+            >
+              <FolderIcon size={22} strokeWidth={view === 'collections' ? 2.5 : 1.5} />
+              <span className="text-[10px] mt-1 font-medium">Collections</span>
             </button>
             
             <button 
               onClick={() => setView('create')}
-              className={`flex flex-col items-center justify-center w-14 h-14 -mt-8 rounded-full shadow-lg transition-all duration-200 ${view === 'create' ? 'bg-chef-600 text-white scale-110 ring-4 ring-white dark:ring-gray-900' : 'bg-chef-600 text-white ring-4 ring-white dark:ring-gray-900'}`}
+              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${view === 'create' ? 'text-chef-600 dark:text-chef-400' : 'text-gray-400 dark:text-gray-500'}`}
             >
-              <PlusCircle size={28} strokeWidth={2.5} />
+              <PlusCircle size={22} strokeWidth={view === 'create' ? 2.5 : 1.5} />
+              <span className="text-[10px] mt-1 font-medium">Add</span>
             </button>
 
             <button 
-              onClick={logout}
-              className="flex flex-col items-center justify-center w-12 h-12 rounded-xl text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+              onClick={() => setShowAccountMenu(true)}
+              className="flex flex-col items-center justify-center flex-1 h-full text-gray-400 dark:text-gray-500"
             >
-              <LogOut size={22} />
+              <UserIcon size={22} strokeWidth={1.5} />
+              <span className="text-[10px] mt-1 font-medium">Account</span>
             </button>
           </div>
         </div>
       )}
 
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8 mt-auto print:hidden mb-16 md:mb-0">
+      {/* Account Menu Modal */}
+      {showAccountMenu && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center" onClick={() => setShowAccountMenu(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div 
+            className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-t-3xl p-6 pb-10 animate-in slide-in-from-bottom duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-6" />
+            
+            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100 dark:border-gray-700">
+              <div className="w-14 h-14 bg-chef-100 dark:bg-chef-900/50 rounded-full flex items-center justify-center text-chef-600 dark:text-chef-400">
+                <UserIcon size={28} />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 dark:text-white">{user?.displayName || 'User'}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => { toggleDark(); }}
+              className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors mb-2"
+            >
+              {isDark ? <Sun size={22} /> : <Moon size={22} />}
+              <span className="font-medium text-gray-700 dark:text-gray-200">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+            </button>
+
+            <button
+              onClick={() => { setShowAccountMenu(false); logout(); }}
+              className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
+            >
+              <LogOut size={22} />
+              <span className="font-medium">Sign Out</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8 mt-auto print:hidden hidden md:block">
         <div className="max-w-7xl mx-auto px-4 text-center">
             <p className="text-gray-400 dark:text-gray-500 text-sm">
                 &copy; 2025 RecipeSnap
             </p>
         </div>
       </footer>
+      {/* Modals */}
+      <FolderModal 
+        isOpen={isFolderModalOpen} 
+        onClose={() => setIsFolderModalOpen(false)} 
+        onSave={handleCreateFolder} 
+        mode="create" 
+      />
+      
+      <MoveToFolderModal
+        isOpen={isMoveModalOpen}
+        onClose={() => setIsMoveModalOpen(false)}
+        onMove={handleMoveRecipe}
+        folders={folders}
+        currentFolderId={recipeToMove?.folderId}
+      />
+
+      <AddFromSavedModal
+        isOpen={isAddFromSavedModalOpen}
+        onClose={() => setIsAddFromSavedModalOpen(false)}
+        onAdd={handleAddFromSaved}
+        savedRecipes={recipes}
+        currentFolderId={currentFolderId || ''}
+      />
     </div>
   );
 }

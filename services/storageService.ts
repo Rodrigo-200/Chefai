@@ -1,6 +1,6 @@
 import localforage from 'localforage';
-import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
-import { Recipe } from '../types';
+import { collection, deleteDoc, doc, getDocs, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { Recipe, Folder } from '../types';
 import { db } from './firebase';
 
 const recipeStore = localforage.createInstance({
@@ -77,8 +77,11 @@ export const saveRecipeForUser = async (uid: string, recipe: Recipe) => {
     console.log(`Saving recipe ${recipe.id} for user ${uid}...`);
     if (!recipe.id) throw new Error("Recipe ID is missing");
     
-    // Ensure undefined values are removed or handled if ignoreUndefinedProperties is not enough
-    const cleanRecipe = JSON.parse(JSON.stringify(recipe));
+    // Ensure undefined values are converted to null so Firestore updates them
+    const cleanRecipe: Record<string, any> = {};
+    for (const [key, value] of Object.entries(recipe)) {
+      cleanRecipe[key] = value === undefined ? null : value;
+    }
     
     await setDoc(doc(userRecipesCollection(uid), recipe.id), cleanRecipe, { merge: true });
     console.log(`Successfully saved recipe ${recipe.id}`);
@@ -97,5 +100,55 @@ export const deleteRecipeForUser = async (uid: string, recipeId: string) => {
     await deleteDoc(doc(userRecipesCollection(uid), recipeId));
   } catch (err) {
     console.warn('Could not delete recipe from Firestore', err);
+  }
+};
+
+export const loadUserFolders = async (uid: string): Promise<Folder[]> => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', uid));
+    if (userDoc.exists()) {
+        const data = userDoc.data();
+        return (data.folders as Folder[]) || [];
+    }
+    return [];
+  } catch (err) {
+    console.error('Could not load folders from Firestore', err);
+    return [];
+  }
+};
+
+export const saveFolderForUser = async (uid: string, folder: Folder) => {
+  try {
+    const userRef = doc(db, 'users', uid);
+    const userDoc = await getDoc(userRef);
+    if (userDoc.exists()) {
+        const data = userDoc.data();
+        const folders = (data.folders as Folder[]) || [];
+        const index = folders.findIndex((f: Folder) => f.id === folder.id);
+        if (index >= 0) {
+            folders[index] = folder;
+        } else {
+            folders.push(folder);
+        }
+        await updateDoc(userRef, { folders });
+    }
+  } catch (err) {
+    console.error('Could not save folder to Firestore', err);
+    throw err;
+  }
+};
+
+export const deleteFolderForUser = async (uid: string, folderId: string) => {
+  try {
+    const userRef = doc(db, 'users', uid);
+    const userDoc = await getDoc(userRef);
+    if (userDoc.exists()) {
+        const data = userDoc.data();
+        const folders = (data.folders as Folder[]) || [];
+        const newFolders = folders.filter((f: Folder) => f.id !== folderId);
+        await updateDoc(userRef, { folders: newFolders });
+    }
+  } catch (err) {
+    console.warn('Could not delete folder from Firestore', err);
   }
 };

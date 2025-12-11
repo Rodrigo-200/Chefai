@@ -48,6 +48,16 @@ export interface Recipe {
   sourceUrl?: string; // If from URL
   languageCode?: string;
   transcript?: string;
+  folderId?: string;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  createdAt: number;
+  recipeCount: number;
+  coverImage?: string;
+}
   ocrText?: string;
   createdAt: number;
   tags: string[];
@@ -60,6 +70,7 @@ export interface User {
   photoURL?: string;
   provider?: string;
   savedRecipeIds: string[];
+  folders?: Folder[];
 }
 
-export type AppView = 'dashboard' | 'create' | 'recipe-detail' | 'login';
+export type AppView = 'dashboard' | 'create' | 'recipe-detail' | 'login' | 'collections';

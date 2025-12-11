@@ -13,6 +13,7 @@ export const ensureUserProfile = async (fbUser: FirebaseUser): Promise<User> => 
     photoURL: fbUser.photoURL || undefined,
     provider: fbUser.providerData?.[0]?.providerId || 'password',
     savedRecipeIds: [],
+    folders: [],
   };
   try {
     const ref = userDocRef(fbUser.uid);
@@ -29,6 +30,7 @@ export const ensureUserProfile = async (fbUser: FirebaseUser): Promise<User> => 
       photoURL: (data.photoURL as string | undefined) || baseProfile.photoURL,
       provider: (data.provider as string | undefined) || baseProfile.provider,
       savedRecipeIds: Array.isArray(data.savedRecipeIds) ? (data.savedRecipeIds as string[]) : [],
+      folders: Array.isArray(data.folders) ? (data.folders as any[]) : [],
     };
   } catch (err) {
     console.warn('Falling back to local profile (offline)', err);

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Recipe } from '../types';
-import { Clock, Users, ChefHat, Heart, X } from 'lucide-react';
+import { Clock, Users, ChefHat, Heart, X, MoreVertical, FolderInput, Trash2 } from 'lucide-react';
 
 const formatDuration = (value?: string | null) => {
   if (!value) return '';
@@ -25,11 +25,25 @@ interface RecipeCardProps {
   recipe: Recipe;
   onClick: (recipe: Recipe) => void;
   onRemove?: () => void;
+  onMove?: () => void;
   showRemove?: boolean;
   isSaved?: boolean;
 }
 
-export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, onRemove, showRemove, isSaved }) => {
+export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, onRemove, onMove, showRemove, isSaved }) => {
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <div 
       onClick={() => onClick(recipe)}
@@ -62,23 +76,46 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, onRemov
         </div>
 
         {/* Action Buttons */}
-        <div className="absolute top-3 right-3 flex gap-2">
-            {showRemove && onRemove && (
-                <button
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onRemove();
-                }}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-md text-gray-900 dark:text-white shadow-sm hover:bg-red-500 hover:text-white transition-colors"
-                >
-                <X size={14} />
-                </button>
-            )}
+        <div className="absolute top-3 right-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
+            {/* Save/Heart Button - First */}
             {isSaved && !showRemove && (
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-md text-red-500 shadow-sm">
-                <Heart size={14} fill="currentColor" />
+                    <Heart size={14} fill="currentColor" />
                 </div>
             )}
+
+            {/* Context Menu - Second */}
+            <div className="relative" ref={menuRef}>
+                <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-md text-gray-900 dark:text-white shadow-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                    <MoreVertical size={16} />
+                </button>
+                
+                {showMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-20 animate-in fade-in zoom-in-95 duration-100">
+                        {onMove && (
+                            <button
+                                onClick={() => { setShowMenu(false); onMove(); }}
+                                className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center gap-2"
+                            >
+                                <FolderInput size={16} />
+                                Move to Folder
+                            </button>
+                        )}
+                        {onRemove && (
+                            <button
+                                onClick={() => { setShowMenu(false); onRemove(); }}
+                                className="w-full text-left px-4 py-2.5 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
+                            >
+                                <Trash2 size={16} />
+                                Delete
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
       </div>
       

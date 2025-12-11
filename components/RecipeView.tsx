@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Recipe } from '../types';
-import { ArrowLeft, Clock, Printer, FileText, FileDown, Globe, ChevronDown, Copy, Download, Heart, Trash2, Edit3, X, Check, AlertCircle, Plus, ChefHat, Users, Flame, Utensils, ExternalLink } from 'lucide-react';
+import { Recipe, Folder } from '../types';
+import { ArrowLeft, Clock, Printer, FileText, FileDown, Globe, ChevronDown, Copy, Download, Heart, Trash2, Edit3, X, Check, AlertCircle, Plus, ChefHat, Users, Flame, Utensils, ExternalLink, Folder as FolderIcon } from 'lucide-react';
 import { downloadMarkdown, downloadPlainText, exportRecipeToPDF } from '../services/exportService';
 // Ingredient images removed per request; using a static icon instead
 
@@ -13,6 +13,7 @@ interface RecipeViewProps {
     onUpdate: (recipe: Recipe) => void;
     isSaved: boolean;
     isLoggedIn: boolean;
+    folders?: Folder[];
 }
 
 const IngredientRow: React.FC<{ ingredient: { name: string; amount: string; unit: string; notes?: string } }> = ({ ingredient }) => {
@@ -34,7 +35,7 @@ const IngredientRow: React.FC<{ ingredient: { name: string; amount: string; unit
     );
 };
 
-export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, onUnsave, onDelete, onUpdate, isSaved, isLoggedIn }) => {
+export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, onUnsave, onDelete, onUpdate, isSaved, isLoggedIn, folders = [] }) => {
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -243,6 +244,19 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                         <Edit3 size={20} />
                     </button>
                 )}
+                {!isEditing && (
+                    <button 
+                        onClick={() => {
+                            if (confirm('Are you sure you want to delete this recipe?')) {
+                                onDelete(recipe.id);
+                                onBack();
+                            }
+                        }}
+                        className="h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-red-500 transition-colors shadow-sm"
+                    >
+                        <Trash2 size={20} />
+                    </button>
+                )}
             </div>
         </div>
       </div>
@@ -265,6 +279,21 @@ export const RecipeView: React.FC<RecipeViewProps> = ({ recipe, onBack, onSave, 
                         className="w-full text-center bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-sm dark:text-white"
                         rows={2}
                     />
+                    
+                    {/* Folder Selection */}
+                    <div className="flex items-center justify-center gap-2 mt-4">
+                        <FolderIcon size={16} className="text-gray-400" />
+                        <select
+                            value={editedRecipe.folderId || ''}
+                            onChange={(e) => updateField('folderId', e.target.value || undefined)}
+                            className="bg-transparent border-b border-gray-200 dark:border-gray-700 focus:border-chef-500 outline-none text-sm text-gray-600 dark:text-gray-300 py-1"
+                        >
+                            <option value="">No Folder</option>
+                            {folders.map(f => (
+                                <option key={f.id} value={f.id}>{f.name}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             ) : (
                 <>

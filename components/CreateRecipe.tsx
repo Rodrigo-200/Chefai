@@ -57,10 +57,10 @@ const isLikelyUrl = (value: string) => {
   return /^https?:\/\//i.test(trimmed) || /^(www\.)?[a-z0-9-]+\.[a-z]{2,}/i.test(trimmed);
 };
 
-const normalizeDuration = (value?: string | null) => {
+const normalizeDuration = (value?: string | null | number) => {
   if (!value) return '';
-  const trimmed = value.trim();
-  const iso = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/i.exec(trimmed);
+  const str = String(value).trim();
+  const iso = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/i.exec(str);
   if (iso) {
     const hours = iso[1] ? parseInt(iso[1], 10) : 0;
     const mins = iso[2] ? parseInt(iso[2], 10) : 0;
@@ -71,9 +71,9 @@ const normalizeDuration = (value?: string | null) => {
     if (secs && !hours && !mins) parts.push(`${secs} sec${secs === 1 ? '' : 's'}`);
     return parts.join(' ') || `${mins} min`;
   }
-  const numeric = /^\d+(?:\.\d+)?$/.test(trimmed);
-  if (numeric) return `${trimmed} min`;
-  return trimmed;
+  const numeric = /^\d+(?:\.\d+)?$/.test(str);
+  if (numeric) return `${str} min`;
+  return str;
 };
 
 export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated, initialUrl }) => {
@@ -279,8 +279,12 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated, ini
 
       setLoadingStep('Building your recipe card...');
 
+      if (!response || !response.recipe) {
+          throw new Error("Received invalid recipe data from server");
+      }
+
       // Ensure we have a valid image URL (compressed base64)
-      let finalImageUrl = response.metadata.coverImage || response.recipe.imageUrl;
+      let finalImageUrl = response.metadata?.coverImage || response.recipe.imageUrl;
       
       // If the image is a base64 string, check its size and compress if needed
       if (finalImageUrl && finalImageUrl.startsWith('data:image')) {
@@ -329,9 +333,9 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated, ini
         tags: response.recipe.tags || [],
         sourceUrl: inputIsUrl ? mainInput.trim() : response.recipe.sourceUrl,
         imageUrl: finalImageUrl,
-        languageCode: response.metadata.languageCode || languageHint,
-        transcript: response.metadata.transcript,
-        ocrText: response.metadata.ocrText,
+        languageCode: response.metadata?.languageCode || languageHint,
+        transcript: response.metadata?.transcript,
+        ocrText: response.metadata?.ocrText,
       };
 
       onRecipeCreated(recipe);
@@ -394,6 +398,72 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated, ini
     );
   };
 
+  // Full screen loading overlay - Recipe creation animation
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-gradient-to-b from-orange-50 to-white dark:from-gray-900 dark:to-gray-800 flex flex-col items-center justify-center p-6 overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Floating particles */}
+          <div className="absolute top-1/3 left-1/4 w-2 h-2 bg-chef-500/20 rounded-full animate-float-particle1" />
+          <div className="absolute top-2/3 left-1/3 w-3 h-3 bg-chef-400/20 rounded-full animate-float-particle2" />
+          <div className="absolute top-1/4 right-1/3 w-2 h-2 bg-chef-600/20 rounded-full animate-float-particle3" />
+          <div className="absolute bottom-1/4 right-1/4 w-4 h-4 bg-chef-300/20 rounded-full animate-float-particle1" style={{ animationDelay: '1s' }} />
+        </div>
+
+        {/* Main animation */}
+        <div className="relative mb-8">
+          {/* Desk shadow */}
+          <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-48 h-4 bg-black/5 dark:bg-black/20 rounded-full blur-sm" />
+          
+          {/* Book animation */}
+          <div className="relative">
+            <KitchenAnimation step={loadingStep} />
+          </div>
+        </div>
+
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3 text-center">
+          {loadingStep || 'Writing your recipe...'}
+        </h2>
+        <p className="text-gray-600 dark:text-gray-400 text-center max-w-md mb-6">
+          RecipeSnap is extracting and organizing your recipe...
+        </p>
+
+        {/* Progress dots */}
+        <div className="flex gap-2 mb-6">
+          <div className="w-2 h-2 bg-chef-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-2 h-2 bg-chef-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="w-2 h-2 bg-chef-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
+
+        {/* Estimated time */}
+        <div className="flex items-center gap-2 text-sm font-medium text-chef-600 dark:text-chef-400 bg-chef-50 dark:bg-chef-900/30 px-4 py-2 rounded-full">
+          <Clock size={16} />
+          <span>Estimated wait: 30-60 seconds</span>
+        </div>
+
+        {/* Custom animations */}
+        <style>{`
+          @keyframes float-particle1 {
+            0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
+            50% { transform: translateY(-20px) scale(1.2); opacity: 0.2; }
+          }
+          @keyframes float-particle2 {
+            0%, 100% { transform: translateY(0) scale(1); opacity: 0.4; }
+            50% { transform: translateY(-30px) scale(0.8); opacity: 0.1; }
+          }
+          @keyframes float-particle3 {
+            0%, 100% { transform: translateY(0) scale(1); opacity: 0.6; }
+            50% { transform: translateY(-15px) scale(1.1); opacity: 0.3; }
+          }
+          .animate-float-particle1 { animation: float-particle1 4s ease-in-out infinite; }
+          .animate-float-particle2 { animation: float-particle2 5s ease-in-out infinite 1s; }
+          .animate-float-particle3 { animation: float-particle3 3.5s ease-in-out infinite 0.5s; }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-xl mx-auto px-4">
       {/* Hero Section */}
@@ -426,7 +496,6 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated, ini
 
       {/* Main Card */}
       <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-        {isLoading && <LoadingOverlay step={loadingStep} />}
         <div className="p-5 sm:p-6">
           {/* Unified Drop Zone / Upload */}
           {!selectedFiles.length ? (
@@ -539,7 +608,7 @@ export const CreateRecipe: React.FC<CreateRecipeProps> = ({ onRecipeCreated, ini
           >
             {isLoading ? (
               <>
-                <CookingAnimation />
+                <RecipeLoadingIcon />
                 <span>{loadingStep}</span>
               </>
             ) : (
@@ -588,12 +657,12 @@ const LoadingOverlay = ({ step }: { step: string }) => {
         </div>
         {/* Floating bubbles/steam */}
         <div className="absolute -top-8 left-1/2 -translate-x-1/2">
-           <CookingAnimation />
+           <RecipeLoadingIcon />
         </div>
       </div>
       
       <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-        Cooking up your recipe...
+        Creating your recipe...
       </h3>
       <p className="text-gray-500 dark:text-gray-400 mb-8 text-lg animate-pulse">
         {step}
@@ -623,39 +692,118 @@ const ChefHatIcon = () => (
   </svg>
 );
 
-const CookingAnimation = () => (
-  <div className="relative w-8 h-8 flex items-center justify-center">
-    {/* Pot */}
-    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M4 12h16v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6z"
-        fill="currentColor"
-        opacity="0.9"
-      />
-      <path d="M2 12h20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M6 12V9" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M18 12V9" stroke="currentColor" strokeWidth="1.5" />
+const RecipeLoadingIcon = () => (
+  <div className="relative w-6 h-6 flex items-center justify-center">
+    <svg className="w-5 h-5 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
     </svg>
-    {/* Steam bubbles */}
-    <span className="absolute -top-1 left-2 w-1.5 h-1.5 bg-white/80 rounded-full animate-steam1" />
-    <span className="absolute -top-0.5 left-4 w-1 h-1 bg-white/60 rounded-full animate-steam2" />
-    <span className="absolute -top-1.5 right-3 w-1.5 h-1.5 bg-white/70 rounded-full animate-steam3" />
-    <style>{`
-      @keyframes steam1 {
-        0%, 100% { transform: translateY(0) scale(1); opacity: 0.8; }
-        50% { transform: translateY(-6px) scale(1.2); opacity: 0; }
-      }
-      @keyframes steam2 {
-        0%, 100% { transform: translateY(0) scale(1); opacity: 0.6; }
-        50% { transform: translateY(-8px) scale(1.3); opacity: 0; }
-      }
-      @keyframes steam3 {
-        0%, 100% { transform: translateY(0) scale(1); opacity: 0.7; }
-        50% { transform: translateY(-5px) scale(1.1); opacity: 0; }
-      }
-      .animate-steam1 { animation: steam1 1.2s ease-in-out infinite; }
-      .animate-steam2 { animation: steam2 1.5s ease-in-out infinite 0.3s; }
-      .animate-steam3 { animation: steam3 1.3s ease-in-out infinite 0.6s; }
-    `}</style>
+    <div className="absolute -top-1 -right-1">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="animate-bounce text-yellow-400">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+      </svg>
+    </div>
+  </div>
+);
+
+// Recipe Creation Animation - Ingredients transforming into a recipe book
+const KitchenAnimation = ({ step }: { step: string }) => {
+  return (
+    <div className="relative w-48 h-48 flex items-center justify-center">
+      {/* Background Glow */}
+      <div className="absolute inset-0 bg-chef-500/10 rounded-full blur-2xl animate-pulse" />
+      
+      <div className="relative w-40 h-40">
+        <RecipeBookAnimation />
+      </div>
+
+      <style>{`
+        @keyframes float-in {
+          0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0; }
+          10% { opacity: 1; }
+          80% { transform: translate(var(--tx), var(--ty)) scale(0.5) rotate(var(--rot)); opacity: 1; }
+          100% { transform: translate(var(--tx), var(--ty)) scale(0) rotate(var(--rot)); opacity: 0; }
+        }
+        @keyframes write-line {
+          0% { width: 0; opacity: 0; }
+          10% { opacity: 1; }
+          100% { width: var(--w); opacity: 1; }
+        }
+        @keyframes pen-move {
+          0%, 100% { transform: translate(0, 0) rotate(0deg); }
+          25% { transform: translate(5px, 2px) rotate(-5deg); }
+          50% { transform: translate(0, 4px) rotate(0deg); }
+          75% { transform: translate(-5px, 2px) rotate(5deg); }
+        }
+        
+        .animate-float-1 { --tx: 40px; --ty: 40px; --rot: 180deg; animation: float-in 3s infinite ease-in-out; }
+        .animate-float-2 { --tx: -30px; --ty: 50px; --rot: -90deg; animation: float-in 3s infinite ease-in-out 1s; }
+        .animate-float-3 { --tx: 20px; --ty: -30px; --rot: 45deg; animation: float-in 3s infinite ease-in-out 2s; }
+        
+        .animate-write-1 { --w: 40%; animation: write-line 2s infinite steps(10) 0.5s; }
+        .animate-write-2 { --w: 70%; animation: write-line 2s infinite steps(15) 1s; }
+        .animate-write-3 { --w: 60%; animation: write-line 2s infinite steps(12) 1.5s; }
+        
+        .animate-pen { animation: pen-move 2s infinite ease-in-out; }
+      `}</style>
+    </div>
+  );
+};
+
+const RecipeBookAnimation = () => (
+  <div className="relative w-full h-full flex items-center justify-center">
+    {/* Floating Ingredients - positioned absolutely around */}
+    <div className="absolute -top-4 -left-4 animate-float-1">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="drop-shadow-md">
+        <circle cx="12" cy="12" r="10" fill="#FF6347" />
+        <path d="M12 2v4M8 5l4-3 4 3" stroke="#228B22" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    </div>
+    <div className="absolute top-0 -right-4 animate-float-2">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="drop-shadow-md">
+        <path d="M12 21C12 21 3 14 3 8C3 4.68629 5.68629 2 9 2C10.6569 2 12 3.34315 12 5C12 3.34315 13.3431 2 15 2C18.3137 2 21 4.68629 21 8C21 14 12 21 12 21Z" fill="#4CAF50" />
+      </svg>
+    </div>
+
+    {/* The Book */}
+    <svg viewBox="0 0 120 100" className="w-32 h-32 drop-shadow-2xl z-10">
+      <defs>
+        <linearGradient id="bookCover" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#8B4513" />
+          <stop offset="100%" stopColor="#A0522D" />
+        </linearGradient>
+        <linearGradient id="pageGradient" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#FFF8F0" />
+          <stop offset="100%" stopColor="#FDF5E6" />
+        </linearGradient>
+      </defs>
+      
+      {/* Back Cover */}
+      <path d="M10 15 h90 a5 5 0 0 1 5 5 v70 a5 5 0 0 1 -5 5 h-90 z" fill="url(#bookCover)" />
+      
+      {/* Pages */}
+      <path d="M15 18 h82 a2 2 0 0 1 2 2 v64 a2 2 0 0 1 -2 2 h-82 z" fill="#D3D3D3" />
+      <path d="M15 16 h82 a2 2 0 0 1 2 2 v64 a2 2 0 0 1 -2 2 h-82 z" fill="url(#pageGradient)" />
+      
+      {/* Spine Detail */}
+      <rect x="8" y="15" width="10" height="80" rx="2" fill="#5D4037" />
+      
+      {/* Text Lines */}
+      <rect x="25" y="25" height="3" rx="1.5" fill="#333" className="animate-write-1" />
+      <rect x="25" y="35" height="3" rx="1.5" fill="#555" className="animate-write-2" />
+      <rect x="25" y="45" height="3" rx="1.5" fill="#555" className="animate-write-3" />
+      <rect x="25" y="55" width="50" height="3" rx="1.5" fill="#555" opacity="0.3" />
+      <rect x="25" y="65" width="40" height="3" rx="1.5" fill="#555" opacity="0.3" />
+    </svg>
+    
+    {/* Pen */}
+    <div className="absolute top-8 right-4 w-8 h-24 animate-pen origin-bottom-left z-20">
+       <svg viewBox="0 0 20 60" className="w-full h-full drop-shadow-lg">
+         <path d="M10 60 L2 45 L18 45 Z" fill="#F0E68C" />
+         <path d="M10 60 L10 45" stroke="#DAA520" strokeWidth="0.5" />
+         <rect x="2" y="0" width="16" height="45" rx="2" fill="#2F4F4F" />
+         <rect x="2" y="5" width="16" height="4" fill="#FFD700" opacity="0.5" />
+       </svg>
+    </div>
   </div>
 );
