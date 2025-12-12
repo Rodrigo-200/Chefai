@@ -1215,8 +1215,12 @@ app.post('/api/recipes', upload.array('media'), async (req, res) => {
       coverImage = webpageImage;
     }
 
+    const recipeWithImage = (coverImage && !recipe.imageUrl)
+      ? { ...recipe, imageUrl: coverImage }
+      : recipe;
+
     res.json({
-      recipe,
+      recipe: recipeWithImage,
       metadata: {
         transcript: transcriptText,
         ocrText,

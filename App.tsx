@@ -678,10 +678,10 @@ export default function App() {
         )}
 
         {view === 'dashboard' && (
-             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 pb-40 md:pb-12">
+             <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 pb-40 md:pb-12">
                 
                 {/* Search Bar - Always at top */}
-                <div className="mb-4">
+                <div className="mb-4 max-w-3xl mx-auto">
                     <div className="relative">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                         <input 
@@ -703,7 +703,7 @@ export default function App() {
 
                 {/* Recipe Grid - Clean, simple, all recipes */}
                 {recipes.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6">
                         {(searchQuery ? filteredRecipes : recipes).map(recipe => (
                             <RecipeCard 
                                 key={recipe.id} 
@@ -747,7 +747,7 @@ export default function App() {
 
         {/* Collections View */}
         {view === 'collections' && (
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 pb-40 md:pb-12">
+            <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 pb-40 md:pb-12">
                 {!currentFolderId ? (
                     <>
                         {/* Collections Header */}
@@ -764,7 +764,7 @@ export default function App() {
 
                         {/* Collections Grid */}
                         {folders.length > 0 ? (
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6">
                                 {folders.map(folder => {
                                     const count = recipes.filter(r => r.folderId === folder.id).length;
                                     const folderRecipes = recipes.filter(r => r.folderId === folder.id);
@@ -847,7 +847,7 @@ export default function App() {
 
                         {/* Recipes in collection */}
                         {recipes.filter(r => r.folderId === currentFolderId).length > 0 ? (
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6">
                                 {recipes.filter(r => r.folderId === currentFolderId).map(recipe => (
                                     <RecipeCard 
                                         key={recipe.id} 
