@@ -157,6 +157,30 @@ const MIME_LOOKUP = {
   wav: 'audio/wav',
 };
 
+// Keep request processing under Cloudflare's 100s limit (allow some buffer).
+const REQUEST_TIMEOUT_MS = 90_000;
+const STEP_BUDGETS = {
+  remoteDownload: 20_000,
+  transcription: 25_000,
+  recipeGen: 25_000,
+  nutrition: 15_000,
+  coverImage: 8_000,
+};
+
+const timeLeft = (deadline) => Math.max(0, deadline - Date.now());
+const withTimeout = (promise, ms, label) => {
+  if (ms <= 0) {
+    return Promise.reject(new Error(`${label} exceeded the time budget. Try a shorter clip or paste text instead.`));
+  }
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(
+      () => reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s. Try a shorter clip or paste the recipe text instead.`)),
+      ms,
+    )),
+  ]);
+};
+
 const isSupportedMime = (mime) => SUPPORTED_MEDIA_PREFIXES.some(prefix => mime.startsWith(prefix));
 
 const computeWarmthScore = (channels = []) => {
@@ -1066,6 +1090,8 @@ app.post('/api/recipes', upload.array('media'), async (req, res) => {
       return res.status(500).json({ error: 'Server missing GEMINI_API_KEY' });
     }
 
+    const requestDeadline = Date.now() + REQUEST_TIMEOUT_MS; // stay under Cloudflare 524 window
+
     const files = req.files || [];
     const {
       userInstructions = '',
@@ -1082,7 +1108,11 @@ app.post('/api/recipes', upload.array('media'), async (req, res) => {
 
     if (remoteUrl) {
       try {
-        remoteFiles = await loadRemoteMedia(remoteUrl);
+        remoteFiles = await withTimeout(
+          loadRemoteMedia(remoteUrl),
+          Math.min(STEP_BUDGETS.remoteDownload, timeLeft(requestDeadline)),
+          'Remote media download',
+        );
       } catch (remoteErr) {
         console.warn('Remote media fetch failed, trying webpage scrape:', remoteErr.message);
         // If media download fails, try scraping the webpage for recipe text
@@ -1110,10 +1140,14 @@ app.post('/api/recipes', upload.array('media'), async (req, res) => {
     const videoOrAudio = combinedFiles.filter(f => f.mimetype.startsWith('video/') || f.mimetype.startsWith('audio/'));
     const images = combinedFiles.filter(f => f.mimetype.startsWith('image/'));
 
-    const [transcripts, ocrBlocks] = await Promise.all([
-      Promise.all(videoOrAudio.map((media) => transcribeMedia(media, languageHint))),
-      Promise.all(images.map(extractOcr)),
-    ]);
+    const [transcripts, ocrBlocks] = await withTimeout(
+      Promise.all([
+        Promise.all(videoOrAudio.map((media) => transcribeMedia(media, languageHint))),
+        Promise.all(images.map(extractOcr)),
+      ]),
+      Math.min(STEP_BUDGETS.transcription, timeLeft(requestDeadline)),
+      'Media transcription',
+    );
 
     const transcriptText = transcripts.filter(Boolean).join('\n');
     const ocrText = ocrBlocks.filter(Boolean).join('\n');
@@ -1130,17 +1164,29 @@ app.post('/api/recipes', upload.array('media'), async (req, res) => {
       sourceUrl: sourceUrl || remoteUrl,
     });
 
-    const rawRecipe = await generateRecipe({ files: combinedFiles, prompt, languageCode: detectedCode });
+    const rawRecipe = await withTimeout(
+      generateRecipe({ files: combinedFiles, prompt, languageCode: detectedCode }),
+      Math.min(STEP_BUDGETS.recipeGen, timeLeft(requestDeadline)),
+      'Recipe generation',
+    );
     const normalizedRecipe = normalizeRecipe(rawRecipe);
     let aiNutrition = null;
     try {
-      aiNutrition = await requestNutritionEstimates(normalizedRecipe, detectedCode, {
-        transcriptText,
-        ocrText,
-        textInput: effectiveTextInput,
-        userInstructions,
-        sourceUrl: sourceUrl || remoteUrl,
-      });
+      if (timeLeft(requestDeadline) > 4_000) {
+        aiNutrition = await withTimeout(
+          requestNutritionEstimates(normalizedRecipe, detectedCode, {
+            transcriptText,
+            ocrText,
+            textInput: effectiveTextInput,
+            userInstructions,
+            sourceUrl: sourceUrl || remoteUrl,
+          }),
+          Math.min(STEP_BUDGETS.nutrition, timeLeft(requestDeadline)),
+          'Nutrition estimation',
+        );
+      } else {
+        console.info('Skipping nutrition estimation due to tight time budget');
+      }
     } catch (nutritionErr) {
       console.warn('AI nutrition estimate failed', nutritionErr.message);
     }
@@ -1151,7 +1197,15 @@ app.post('/api/recipes', upload.array('media'), async (req, res) => {
     if (video) {
       const ext = video.originalname.split('.').pop() || 'mp4';
       try {
-        coverImage = await captureVideoFrame(video.buffer, ext);
+        if (timeLeft(requestDeadline) > 4_000) {
+          coverImage = await withTimeout(
+            captureVideoFrame(video.buffer, ext),
+            Math.min(STEP_BUDGETS.coverImage, timeLeft(requestDeadline)),
+            'Cover image extraction',
+          );
+        } else {
+          console.info('Skipping cover image extraction due to tight time budget');
+        }
       } catch (frameError) {
         console.warn('Unable to capture frame', frameError.message);
       }
