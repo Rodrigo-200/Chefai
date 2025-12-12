@@ -158,13 +158,13 @@ const MIME_LOOKUP = {
 };
 
 // Keep request processing under Cloudflare's 100s limit (allow some buffer).
-const REQUEST_TIMEOUT_MS = 90_000;
+const REQUEST_TIMEOUT_MS = 95_000;
 const STEP_BUDGETS = {
-  remoteDownload: 20_000,
-  transcription: 25_000,
-  recipeGen: 25_000,
-  nutrition: 15_000,
-  coverImage: 8_000,
+  remoteDownload: 45_000,
+  transcription: 45_000,
+  recipeGen: 45_000,
+  nutrition: 20_000,
+  coverImage: 20_000,
 };
 
 const timeLeft = (deadline) => Math.max(0, deadline - Date.now());
